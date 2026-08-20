@@ -1,0 +1,68 @@
+[submodule "one-api"]
+	path = docs/analysis/01-one-api-family/one-api/one-api
+	url = https://github.com/songquanpeng/one-api.git
+	branch = main
+[submodule "new-api"]
+	path = docs/analysis/01-one-api-family/new-api/new-api
+	url = https://github.com/QuantumNous/new-api.git
+	branch = main
+[submodule "simple-one-api"]
+	path = docs/analysis/02-lightweight-gateway/simple-one-api/simple-one-api
+	url = https://github.com/fruitbars/simple-one-api.git
+	branch = main
+[submodule "portkey-gateway"]
+	path = docs/analysis/02-lightweight-gateway/portkey-gateway/portkey-gateway
+	url = https://github.com/Portkey-AI/gateway.git
+	branch = main
+[submodule "coai"]
+	path = docs/analysis/01-one-api-family/coai/coai
+	url = https://github.com/coaidev/coai.git
+	branch = main
+[submodule "docs/analysis/02-lightweight-gateway/litellm/litellm"]
+	path = docs/analysis/02-lightweight-gateway/litellm/litellm
+	url = https://github.com/BerriAI/litellm.git
+	branch = main
+[submodule "docs/analysis/03-cloud-native-gateway/higress/higress"]
+	path = docs/analysis/03-cloud-native-gateway/higress/higress
+	url = https://github.com/higress-group/higress.git
+	branch = main
+[submodule "docs/analysis/03-cloud-native-gateway/envoy-ai-gateway/envoy-ai-gateway"]
+	path = docs/analysis/03-cloud-native-gateway/envoy-ai-gateway/envoy-ai-gateway
+	url = https://github.com/envoyproxy/ai-gateway.git
+	branch = main
+[submodule "docs/analysis/02-lightweight-gateway/openai-forward/openai-forward"]
+	path = docs/analysis/02-lightweight-gateway/openai-forward/openai-forward
+	url = https://github.com/KenyonY/openai-forward.git
+	branch = main
+[submodule "docs/analysis/04-web2api/sub2api/sub2api"]
+	path = docs/analysis/04-web2api/sub2api/sub2api
+	url = https://github.com/Wei-Shaw/sub2api.git
+	branch = main
+[submodule "docs/analysis/04-web2api/gpt4free/gpt4free"]
+	path = docs/analysis/04-web2api/gpt4free/gpt4free
+	url = https://github.com/xtekky/gpt4free.git
+	branch = main
+[submodule "docs/analysis/04-web2api/chatgpt2api/chatgpt2api"]
+	path = docs/analysis/04-web2api/chatgpt2api/chatgpt2api
+	url = https://github.com/basketikun/chatgpt2api.git
+	branch = main
+[submodule "docs/analysis/04-web2api/openai-cpa/openai-cpa"]
+	path = docs/analysis/04-web2api/openai-cpa/openai-cpa
+	url = https://github.com/wenfxl/openai-cpa.git
+	branch = main
+[submodule "docs/analysis/04-web2api/autoteam/autoteam"]
+	path = docs/analysis/04-web2api/autoteam/autoteam
+	url = https://github.com/cnitlrt/AutoTeam.git
+	branch = dev
+[submodule "docs/analysis/05-ecosystem/metapi/metapi"]
+	path = docs/analysis/05-ecosystem/metapi/metapi
+	url = https://github.com/cita-777/metapi.git
+	branch = main
+[submodule "docs/analysis/05-ecosystem/all-api-hub/all-api-hub"]
+	path = docs/analysis/05-ecosystem/all-api-hub/all-api-hub
+	url = https://github.com/qixing-jk/all-api-hub.git
+	branch = main
+[submodule "docs/analysis/05-ecosystem/sub-store/sub-store"]
+	path = docs/analysis/05-ecosystem/sub-store/sub-store
+	url = https://github.com/sub-store-org/Sub-Store.git
+	branch = master
