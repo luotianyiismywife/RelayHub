@@ -1,0 +1,81 @@
+# tokenrhythm 上游插件定义
+# kind: Upstream-api-balance（API Key + 余额计费）
+# 平台：基云律动 https://tokenrhythm.studio/v1
+# 规则来源：tokenrhythm-copilot 实测记录
+apiVersion: relayhub.io/v1
+kind: Upstream-api-balance
+metadata:
+  name: tokenrhythm
+  version: 1.0.0
+  labels:
+    vendor: tokenrhythm
+
+# 依赖声明（Cargo 规则，见插件开发规范 §1.5）
+depends:
+  kernel: "^0.1"
+
+# ── 端点（key = 协议名，内核按协议分发）────────────────────
+apis:
+  openai:                       # OpenAI 协议
+    path: /v1/chat/completions
+    method: POST
+  anthropic:                    # Anthropic 协议
+    path: /v1/messages
+    method: POST
+  responses:                    # Responses 协议
+    path: /v1/responses
+    method: POST
+  models:                       # 模型列表（通用）
+    path: /v1/models
+    method: GET
+  embeddings:                   # 嵌入（OpenAI 系）
+    path: /v1/embeddings
+    method: POST
+
+# ── 认证：key 转发 + cookie 查余额（tokenrhythm 实测）────────
+auth:
+  type: bearer
+  key_field: Authorization
+  credentials: ref:tokenrhythm-prod     # 转发用 key（docker secret 引用）
+  query:                                # 查余额专用凭据（实测：key 查不了余额，需 tr_session）
+    cookie: ref:tokenrhythm-session     # 余额查询用 cookie（一个 cookie 可绑多个 key）
+
+# ── 静态规则（强制头 / 必传字段）────────────────────────────
+special:
+  headers:
+    anthropic:                          # Anthropic 协议必带头
+      anthropic-version: "2023-06-01"
+  required_fields:
+    anthropic:
+      - max_tokens                      # Anthropic 必传（缺失补默认值）
+
+# ── 协议策略（默认最稳，异常降级）────────────────────────────
+protocols:
+  preferred: openai
+  order: [openai, anthropic, responses]
+  fallback: openai
+  fallback_on_error:
+    - 400                               # 参数组合无效（thinking+temperature）
+    - 422
+    - invalid_parameter
+
+# ── key 轮换错误判定（tokenrhythm 实测）─────────────────────
+# 来源：tokenrhythm-copilot 多 key 轮换系统实测；只声明判定，机制归内核
+# http.yaml = 完整状态码 → 动作映射（rotate/cooldown/retry/passthrough）
+rotation:
+  http_rules: ./http.yaml              # ✅ 状态码 → 动作映射（按实测：401/402 轮换、429 冷却、503 重试）
+  error_patterns:                       # 实测错误体：{"code":"INSUFFICIENT_BALANCE","message":"余额不足"}
+    - "余额不足"
+    - "insufficient_balance"
+    - "INSUFFICIENT_BALANCE"
+    - "RATE_LIMITED"
+    - "UPSTREAM_RATE_LIMITED"
+  balance_ttl: 5m                       # 余额有效期（有 cookie 查询成本）
+
+# ── 脚本清单：钩子 → 文件/函数 显式映射（可拆多文件）──────────
+# list_models 默认必配：不同平台的模型列表大概率不一样（格式/扩展字段/甚至没有 /models）
+scripts:
+  convert_request:  ./convert.ts       # 协议条件修正（anthropic/responses/openai）
+  convert_response: ./convert.ts       # responses 文本化回填
+  list_models:      ./models.ts        # 必配：模型列表归一化（supports_anthropic/responses）
+  quota_balance:    ./quota.ts         # 余额查询（余额计费模式）

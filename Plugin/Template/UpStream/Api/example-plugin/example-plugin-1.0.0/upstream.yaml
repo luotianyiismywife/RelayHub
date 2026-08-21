@@ -1,0 +1,148 @@
+# <插件名> 上游插件定义（模板）
+# ════════════════════════════════════════════════════════════════
+# 职责边界（详见 README「职责边界」表）：
+#   本文件 = 平台说明书（数据/协议/怪癖）—— 只声明"平台长什么样"
+#   内核   = 转发引擎（调度/预扣/缓存/凭据托管）
+#   内核插件 = 横切能力（Kernel-billing 成本计算 / Kernel-retry 重试 /
+#              Kernel-ratelimit 限流 / Kernel-logging 记录 / Kernel-health 健康）
+# ❌ 上游插件不写：成本计算、预扣结算、限流、重试、缓存、日志、告警
+# ✅ 上游插件只写：端点/鉴权/静态规则/模型列表/模型映射/协议修正/余额查询/错误判定
+# ════════════════════════════════════════════════════════════════
+# 两种 kind 二选一（差别只在计费方式，其余结构相同）：
+#   kind: Upstream-api-balance（API Key + 余额计费）→ 用 quota_balance 钩子
+#   kind: Upstream-api-quota  （API Key + 套餐限额）→ 用 quota_usage 钩子 + billing 段
+apiVersion: relayhub.io/v1
+kind: Upstream-api-balance      # ← 按平台计费方式选 balance 或 quota
+metadata:
+  name: <插件名>                  # ← 必填：插件名（与文件夹名一致）
+  version: 1.0.0                  # ← 必填：版本（与文件夹名一致，Cargo/SemVer 三级）
+  labels:
+    vendor: <厂商>                 # ← 可选：厂商标签
+
+# ── 依赖声明（Cargo.toml [dependencies] 风格）────────────────
+# 约束符号：^1.2（>=1.2,<2.0）/ ~1.2（>=1.2,<1.3）/ =1.2.3 / >=1.2,<2.0 / 1.* / *
+depends:
+  kernel: "^0.1"                  # ← 依赖内核 SDK 版本范围（虚拟依赖）
+  Kernel-billing: "~1.2"          # ← 依赖其他插件（页面插件依赖内核插件产数据时才需要）
+
+# ── 端点（key = 协议名，内核按协议分发）────────────────────
+# 内核内置四协议：openai / anthropic / responses / gemini；其他协议用 ts 实现
+# 平台支持哪些协议就写哪些；models/embeddings 等通用端点单独列出
+apis:
+  openai:                       # OpenAI 协议（兼容一切）
+    path: /v1/chat/completions    # ← 平台的实际路径
+    method: POST
+  anthropic:                    # Claude 系（配 special.headers.anthropic-version）
+    path: /v1/messages
+    method: POST
+  responses:                    # OpenAI 新接口
+    path: /v1/responses
+    method: POST
+  gemini:                       # Google 系
+    path: /v1beta/models/*:generateContent
+    method: POST
+  models:                       # 模型列表（通用）
+    path: /v1/models
+    method: GET
+  embeddings:                   # 嵌入（平台支持才留）
+    path: /v1/embeddings
+    method: POST
+
+# ── 认证：API Key（转发用）─────────────────────────────────
+# 注意：转发请求和余额/套餐查询用的凭据可能不同（平台相关）！
+auth:
+  type: bearer                    # bearer | header | query（按平台选）
+  key_field: Authorization        # 放 key 的请求头/字段名
+  credentials: ref:<插件名>-prod   # ← 转发用 key（docker secret 引用名）
+  query:                          # 查余额/套餐的附加凭据（只有 key 就能查的平台删掉此段）
+    cookie: ref:<插件名>-session   # ← 余额查询专用 cookie/session（如 tokenrhythm）
+
+# ── 静态规则（可省略）───────────────────────────────────────
+# 静态强制头 / 必传字段放这里，只有条件逻辑才写 ts
+special:
+  headers:
+    anthropic:                    # 走 anthropic 协议时强制注入
+      anthropic-version: "2023-06-01"
+  required_fields:
+    anthropic:
+      - max_tokens
+  pass_headers:                 # 多级代理：透传到上游的客户端请求头（可选）
+    - x-request-id
+    - x-relayhop
+  strip_headers:                # 多级代理：剥离的头（可选，防止暴露内部信息）
+    - x-internal-key
+
+# ── 协议策略（可省略，默认 openai）──────────────────────────
+protocols:
+  preferred: openai
+  order: [openai, anthropic, responses]
+  fallback: openai
+  fallback_on_error:
+    - 400
+    - 422
+
+# ── key 轮换错误判定（平台相关！每个平台错误代码不一样，需挨个适配）──
+# 只声明"什么错误怎么处理"（判定），轮换机制/模式/冷却/重试次数归内核
+# http.yaml = 完整状态码 → 动作映射（rotate / cooldown / retry / passthrough）
+rotation:
+  http_rules: ./http.yaml        # ✅ 状态码 → 动作映射（见 http.yaml，按平台实测改）
+  error_patterns:               # ✅ 能换 key 的错误文本模式（不区分大小写）
+    - "insufficient_balance"    # 余额不足（各平台文案不同，按实测填）
+    - "rate_limited"            # 限流
+  balance_ttl: 5m               # ✅ 余额有效期（过期重新查询，按平台实测）
+  # ❌ 没有 mode / cooldown / 重试次数 —— 那是内核机制（config.yaml 配）
+
+# ── http.yaml 动作语义（判定在插件，机制在内核）──────────────
+#   rotate     确定性凭据失效（401/402）→ 内核持久化标记该 key 不可用，换下一个 key
+#   cooldown   瞬态限流（429）→ 内核内存冷却该 key（时长 config.yaml），换下一个
+#   retry      服务端/超时（5xx/408/504）→ 内核重试（指数退避，次数 config.yaml）
+#   passthrough 客户端错误（4xx）→ 直接返回客户端，不重试不轮换
+#   default    未列出的状态码 → passthrough（安全兜底）
+#   rotatable / retryable：显式标记该状态码是否参与轮换/重试（默认 false）
+
+# ── 计费（仅 kind: Upstream-api-quota 需要，balance 删掉此段）──
+billing:
+  type: quota
+  windows:                     # 套餐窗口（按平台实际填写）
+    # ★ 每个窗口声明后，quota_usage 钩子必须返回对应窗口（含 kind + resetsAt）
+    # ★ 窗口类型 kind（模板 quota.ts 契约）：
+    #   rolling  ：滚动窗口（5h/3d：过去 N 时长滑动）→ resetsAt = now+周期
+    #   calendar ：日历固定边界（daily/weekly/monthly）→ resetsAt = 下一个日历边界
+    rolling:
+      period: 5h               # ← rolling 窗口（5h 滚动：旧额度滑出）
+      kind: rolling            # ★ 滚动窗口必须标 kind: rolling
+    3d:                        # ← 3 天滚动限额（未来平台可能用）
+      period: 3d
+      kind: rolling
+    daily:                     # ← 日限额（sub2api ChatGPT Plus/Pro 模式）
+      period: daily
+      kind: calendar           # ★ 日历固定边界（每天 00:00 重置）
+      # window_start 字段由钩子从 daily_window_start 等平台字段透传
+    weekly:
+      period: weekly
+      kind: calendar           # ★ 日历固定边界（每周一 00:00 重置）
+    monthly:
+      period: monthly
+      kind: calendar           # ★ 日历固定边界（每月 1 日 00:00 重置）
+  fallback_balance: useBalance # 额度耗尽后回退余额的标志（可选）
+
+  # ── 峰谷定价（可选，sub2api 实测模式）──────────────────
+  # 峰时消耗额度/金额翻倍；判定在内核（按 timezone 时区）
+  # 影响：余额扣减（balance 类）与套餐用量（quota 类）都会受影响
+  peak:
+    start: "14:00"              # 峰时开始（24h 格式，服务器时区）
+    end: "18:00"                # 峰时结束
+    multiplier: 2               # 峰时消耗倍率（2 = 翻倍）
+    timezone: "Asia/Shanghai"   # 时区（IANA；缺省 = 服务器时区）
+  # 平台从 API 动态返回峰谷 → 不用写死，钩子 parsePeak 透传（quota.ts）
+
+# ── 脚本清单：钩子 → 文件/函数 显式映射（可拆多文件）────────
+# 格式：<钩子名>: <文件路径>           （函数名 = 钩子名，默认）
+# 或：  <钩子名>: { file: <路径>, fn: <函数名> }
+# 简单插件可都指向同一文件；推荐按职责拆文件，各自指向。
+scripts:
+  convert_request:  ./convert.ts    # 协议条件修正（平台有怪癖才需要）
+  convert_response: ./convert.ts    # 响应修正 + usage 归一化（extract_usage 转 TokenUsage）
+  list_models:      ./models.ts     # 默认必配：模型列表归一化（各平台大概率不同）
+  quota_balance:    ./quota.ts      # kind: Upstream-api-balance 用（余额查询）
+  quota_usage:      ./quota.ts      # kind: Upstream-api-quota 用（套餐限额）

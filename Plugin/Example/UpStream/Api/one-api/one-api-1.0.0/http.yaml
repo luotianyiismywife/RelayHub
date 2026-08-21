@@ -1,0 +1,51 @@
+# one-api 状态码 → 动作映射（OpenAI 兼容网关）
+# 无 402：余额不足按 OpenAI 惯例返回 429 + 错误体 insufficient_quota
+# （429 的余额不足区分靠 upstream.yaml error_patterns）
+version: 1
+default:
+  action: passthrough
+  rotatable: false
+  retryable: false
+codes:
+  "400":
+    action: passthrough
+    reason: bad_request
+  "401":
+    action: rotate
+    reason: invalid_credential
+    rotatable: true
+    retryable: true
+  "403":
+    action: passthrough
+    reason: forbidden
+  "404":
+    action: passthrough
+    reason: not_found
+  "408":
+    action: retry
+    reason: request_timeout
+    retryable: true
+  "422":
+    action: passthrough
+    reason: unprocessable_content
+  "429":
+    action: cooldown
+    reason: rate_limited          # 余额不足也返回 429（error_patterns 区分）
+    rotatable: true
+    retryable: true
+  "500":
+    action: retry
+    reason: internal_server_error
+    retryable: true
+  "502":
+    action: retry
+    reason: bad_gateway
+    retryable: true
+  "503":
+    action: retry
+    reason: service_unavailable
+    retryable: true
+  "504":
+    action: retry
+    reason: gateway_timeout
+    retryable: true

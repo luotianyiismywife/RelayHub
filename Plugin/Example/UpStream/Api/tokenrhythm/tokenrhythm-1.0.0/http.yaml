@@ -1,0 +1,56 @@
+# tokenrhythm 状态码 → 动作映射（实测）
+# 来源：tokenrhythm-copilot 多 key 轮换系统实测
+# 402 = 余额不足（实测拦截）；400 = 参数组合无效（thinking+temperature，protocols.fallback 处理）
+version: 1
+default:
+  action: passthrough
+  rotatable: false
+  retryable: false
+codes:
+  "400":
+    action: passthrough
+    reason: bad_request          # 参数组合无效（thinking+temperature）→ fallback 处理
+  "401":
+    action: rotate
+    reason: invalid_credential
+    rotatable: true
+    retryable: true
+  "402":
+    action: rotate
+    reason: insufficient_balance  # 余额不足（实测拦截在余额校验）
+    rotatable: true
+    retryable: true
+  "403":
+    action: passthrough
+    reason: forbidden
+  "404":
+    action: passthrough
+    reason: not_found
+  "408":
+    action: retry
+    reason: request_timeout
+    retryable: true
+  "422":
+    action: passthrough
+    reason: unprocessable_content
+  "429":
+    action: cooldown
+    reason: rate_limited
+    rotatable: true
+    retryable: true
+  "500":
+    action: retry
+    reason: internal_server_error
+    retryable: true
+  "502":
+    action: retry
+    reason: bad_gateway
+    retryable: true
+  "503":
+    action: retry
+    reason: service_unavailable
+    retryable: true
+  "504":
+    action: retry
+    reason: gateway_timeout
+    retryable: true

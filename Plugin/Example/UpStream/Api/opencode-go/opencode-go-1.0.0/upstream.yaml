@@ -1,0 +1,88 @@
+# OpenCode Go 上游插件定义
+# kind: Upstream-api-quota（API Key + 套餐限额计费）
+# 平台：OpenCode Go https://opencode.ai/zen/go/v1/
+# 规则来源：opencode-go-copilot 实测记录（goUsage.ts / apiModelList.ts）
+apiVersion: relayhub.io/v1
+kind: Upstream-api-quota
+metadata:
+  name: opencode-go
+  version: 1.0.0
+  labels:
+    vendor: opencode
+
+# 依赖声明（Cargo 规则，见插件开发规范 §1.5）
+depends:
+  kernel: "^0.1"
+
+# ── 端点（key = 协议名，内核按协议分发）────────────────────
+apis:
+  openai:                       # OpenAI 协议
+    path: /v1/chat/completions
+    method: POST
+  anthropic:                    # Anthropic 协议
+    path: /v1/messages
+    method: POST
+  responses:                    # Responses 协议
+    path: /v1/responses
+    method: POST
+  models:                       # 模型列表（通用）
+    path: /v1/models
+    method: GET
+  usage:                        # 套餐用量端点（Quota 类）
+    path: /usage
+    method: GET
+    # 解析由 quota_usage 钩子（quota.ts）处理，不在此声明 use_script（已废弃，C3）
+
+# ── 认证：单个 API Key ─────────────────────────────────────
+auth:
+  type: bearer
+  key_field: Authorization
+  credentials: ref:opencode-go-prod    # docker secret 引用
+
+# ── 静态规则 ───────────────────────────────────────────────
+special:
+  headers:
+    anthropic:
+      anthropic-version: "2023-06-01"
+
+# ── 协议策略 ───────────────────────────────────────────────
+protocols:
+  preferred: openai
+  # 注意：opencode-go 的协议选择实际由模型目录（models.dev）的
+  # provider.npm 决定（@ai-sdk/openai / anthropic / google / openai-compatible），
+  # 此处 order 仅作未知模型的兜底顺序。
+  order: [openai, anthropic, responses]
+  fallback: openai
+
+# ── key 轮换错误判定（opencode-go）─────────────────────────
+# 标准 OpenAI 风格：无 402（套餐制），余额不足由 useBalance 标志指示
+# 只声明判定，轮换机制/模式归内核
+# http.yaml = 完整状态码 → 动作映射（rotate/cooldown/retry/passthrough）
+rotation:
+  http_rules: ./http.yaml              # ✅ 状态码 → 动作映射（无 402：套餐限额非余额）
+  error_patterns:                       # 标准 OpenAI 错误码风格
+    - "insufficient_quota"              # 套餐/额度耗尽（OpenAI 标准）
+    - "rate_limited"
+  balance_ttl: 5m                       # 套餐用量缓存有效期
+
+# ── 计费：套餐限额（quota 模式）─────────────────────────────
+billing:
+  type: quota
+  windows:                     # 套餐窗口（5h 滚动 / 周 / 月，日历固定边界）
+    rolling:
+      period: 5h
+      kind: rolling            # ★ 滚动窗口（旧额度滑出，resetsAt = now+5h）
+    weekly:
+      period: weekly
+      kind: calendar           # ★ 日历固定边界（每周一 00:00 重置）
+    monthly:
+      period: monthly
+      kind: calendar           # ★ 日历固定边界（每月 1 日 00:00 重置）
+  fallback_balance: useBalance # 额度耗尽后回退 Zen 余额的标志
+
+# ── 脚本清单：钩子 → 文件/函数 显式映射（可拆多文件）──────────
+scripts:
+  quota_usage:      ./quota.ts        # 套餐限额查询（多窗口 + 宽容解析）
+  list_models:      ./models.ts       # 模型列表
+  convert_request:  ./convert.ts      # 协议条件修正（标准协议，透传）
+  convert_response: ./convert.ts      # 响应修正（标准协议，透传）

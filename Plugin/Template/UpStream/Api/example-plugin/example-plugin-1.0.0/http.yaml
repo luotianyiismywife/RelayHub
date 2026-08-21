@@ -1,0 +1,140 @@
+# ════════════════════════════════════════════════════════════════════
+# http.yaml —— 状态码 → 动作映射（YAML，原生支持注释）
+# ════════════════════════════════════════════════════════════════════
+# 作用：定义【这个平台】返回的各种 HTTP 状态码应该怎么处理。
+# 原则：判定在插件（本文件声明"什么状态码怎么处理"），
+#       机制在内核（冷却时长/重试次数/换 key 模式在 config.yaml）。
+# 每个平台的状态码语义不一样，必须按平台实测改（复制模板后第一件事）。
+#
+# ═══════════ 字段说明 ═══════════
+# version   文件格式版本（当前 = 1）。内核按版本解析，未来格式演进用。
+# default   兜底规则：状态码未在 codes 里列出时的处理（安全默认 = passthrough）
+# codes     状态码 → 规则 映射（key 是字符串化的 HTTP 状态码）
+#
+# 每条规则（codes 里的值 / default）：
+#   action      怎么处理：rotate / cooldown / retry / passthrough（见下）
+#   reason      人类可读原因（日志/告警/Page 展示用）
+#   rotatable   该状态码是否参与换 key（省略 = false）。true 时内核换下一个 key 重试
+#   retryable   该状态码是否参与重试（省略 = false）。true 时内核按退避重试
+#   ⚠️ action 决定"优先怎么处理"，rotatable/retryable 决定"处理后是否还换 key/重试"
+#      例：402 → action: rotate（确定性失效）+ rotatable: true（换 key 有用）
+#      例：400 → action: passthrough（客户端错）+ rotatable: false（换 key 没用）
+#
+# ═══════════ action 动作语义 ═══════════
+#   rotate       确定性凭据失效（key 无效/余额不足，换了就有用）
+#                → 内核持久化标记该 key 不可用，换下一个 key 重试
+#   cooldown     瞬态限流（冷却后可能恢复）
+#                → 内核内存冷却该 key（时长 = config.yaml cooldown），换下一个
+#   retry        服务端/超时（上游挂了/超时，重试或换 key 可能成功）
+#                → 内核指数退避重试（次数 = config.yaml），可换 key（若 rotatable）
+#   passthrough  客户端错误（请求参数错/无权限/不存在，换 key 没用）
+#                → 内核直接返回客户端，不重试不轮换
+#   （default）  未列出的状态码 → passthrough（安全兜底，宁可透传不误伤）
+#
+# 处理优先级（内核收到响应后）：
+#   1. 查 codes[状态码] → 有规则用规则
+#   2. 没有 → 用 default（passthrough）
+#   3. 按 action 执行 + 按 rotatable/retryable 决定是否换 key/重试
+#   4. 全部 key 试完仍失败 → 返回最后一个错误给客户端 + 记日志
+#
+# ═══════════ 常见状态码速查（标准 OpenAI 兼容平台）═══════════
+#   400  请求参数错误        → passthrough（客户端问题，换 key 没用）
+#   401  鉴权失败（key 无效） → rotate（确定性失效，换 key 有用）
+#   402  余额不足            → rotate（换有余额的 key；套餐制平台无此码）
+#   403  无权限/封禁         → passthrough（多数是配置问题）
+#   404  端点不存在          → passthrough（说明 apis.path 配错了）
+#   408  请求超时            → retry（网络问题，重试可能成功）
+#   413  请求体过大          → passthrough（客户端问题）
+#   422  内容无法处理        → passthrough（参数/内容问题）
+#   429  限流               → cooldown（冷却后恢复；也常表示余额不足[OpenAI惯例]）
+#   500  服务器内部错误      → retry（上游问题）
+#   502  坏网关             → retry（上游问题）
+#   503  服务不可用          → retry（上游问题/维护中）
+#   504  网关超时            → retry（上游问题）
+#
+#   ⚠️ 平台差异很大，以上只是"标准"建议，务必按平台实测改：
+#     tokenrhythm ：402 = 余额不足（实测拦截）；400 = 参数组合无效（thinking+temperature）
+#     opencode-go ：无 402（套餐制），余额耗尽 = insufficient_quota
+#     one-api     ：余额不足按 OpenAI 惯例 429（非 402），错误体 insufficient_quota
+#   → 参考各示例：Example/UpStream/Api/*/http.yaml
+#
+# ═══════════ 与 upstream.yaml rotation 段配合 ═══════════
+#   http_rules:  ./http.yaml   ← 状态码 → 动作（本文件）
+#   error_patterns: [...]      ← 错误体文本模式（body 里的 error code/文案）
+#   balance_ttl:  5m           ← 余额有效期（过期内核重新查询）
+#   → 状态码命中 → 按本文件处理；同时检查 error_patterns 命中 → 强化处理
+#     （例：429 + body 含 insufficient_balance → 按"确定性余额不足" rotate 而非 cooldown）
+#
+# ═══════════ 不在本文件写的（内核机制，config.yaml）═══════════
+#   冷却时长（cooldown 多久）          → config.yaml
+#   重试次数 / 退避策略               → config.yaml
+#   换 key 模式（sticky/rotation/single） → config.yaml
+#   并发控制 / 告警通知               → 内核 / Kernel-alert 插件
+#   ⚠️ 本文件只回答："这个平台返回 X 状态码，内核该怎么处理"
+#      —— 不包含"处理得多重/多久"
+# ════════════════════════════════════════════════════════════════════
+version: 1
+default:
+  action: passthrough
+  rotatable: false
+  retryable: false
+codes:
+  "400":
+    action: passthrough
+    reason: bad_request
+  "401":
+    action: rotate
+    reason: invalid_credential
+    rotatable: true
+    retryable: true
+  "402":
+    action: rotate
+    reason: insufficient_balance
+    rotatable: true
+    retryable: true
+  "403":
+    action: passthrough
+    reason: forbidden
+  "404":
+    action: passthrough
+    reason: not_found
+  "408":
+    action: retry
+    reason: request_timeout
+    retryable: true
+  "409":
+    action: passthrough
+    reason: conflict
+  "413":
+    action: passthrough
+    reason: payload_too_large
+  "415":
+    action: passthrough
+    reason: unsupported_media_type
+  "422":
+    action: passthrough
+    reason: unprocessable_content
+  "429":
+    action: cooldown
+    reason: rate_limited
+    rotatable: true
+    retryable: true
+  "500":
+    action: retry
+    reason: internal_server_error
+    retryable: true
+  "501":
+    action: passthrough
+    reason: not_implemented
+  "502":
+    action: retry
+    reason: bad_gateway
+    retryable: true
+  "503":
+    action: retry
+    reason: service_unavailable
+    retryable: true
+  "504":
+    action: retry
+    reason: gateway_timeout
+    retryable: true

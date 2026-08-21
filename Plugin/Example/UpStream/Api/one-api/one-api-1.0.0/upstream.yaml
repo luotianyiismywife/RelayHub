@@ -1,0 +1,67 @@
+# one-api 上游插件定义
+# kind: Upstream-api-balance（API Key + 余额计费）
+# 平台：one-api / new-api 系中转站（"中转站作为上游"的示例）
+# 特点：OpenAI 兼容标准，唯一的定制点是余额查询接口
+apiVersion: relayhub.io/v1
+kind: Upstream-api-balance
+metadata:
+  name: one-api
+  version: 1.0.0
+  labels:
+    vendor: one-api
+
+# 依赖声明（Cargo 规则，见插件开发规范 §1.5）
+depends:
+  kernel: "^0.1"
+
+# ── 端点（key = 协议名，内核按协议分发）────────────────────
+# one-api 是标准 OpenAI 兼容网关，协议全支持（按部署配置可能只开部分）
+apis:
+  openai:                       # OpenAI 协议（标准）
+    path: /v1/chat/completions
+    method: POST
+  # one-api 新版按部署配置可能还支持 anthropic（/v1/messages）、responses（/v1/responses）
+  models:                       # 模型列表（标准 OpenAI 格式）
+    path: /v1/models
+    method: GET
+
+# ── 认证：中转站发放的 API Key ─────────────────────────────
+auth:
+  type: bearer
+  key_field: Authorization
+  credentials: ref:one-api-prod     # docker secret 引用
+
+# ── 静态规则（多级代理场景）────────────────────────────────
+special:
+  # 中转站作为上游时，透传链路追踪头（多级代理标识）
+  pass_headers:
+    - x-request-id
+  # 剥离内部认证头，防止泄露
+  strip_headers:
+    - x-relayhub-key
+
+# ── 协议策略（one-api 通常全协议开放，默认 openai）──────────
+protocols:
+  preferred: openai
+  order: [openai, anthropic, responses]
+  fallback: openai
+
+# ── key 轮换错误判定（one-api）─────────────────────────────
+# one-api 是 OpenAI 兼容网关：余额不足按 OpenAI 惯例返回 429（而非 402）
+# 或 error code "insufficient_quota"；具体以部署版本为准
+# 只声明判定，轮换机制/模式归内核
+# http.yaml = 完整状态码 → 动作映射（rotate/cooldown/retry/passthrough）
+rotation:
+  http_rules: ./http.yaml              # ✅ 状态码 → 动作映射（无 402：OpenAI 惯例 429 表示余额不足）
+  error_patterns:
+    - "insufficient_quota"              # one-api 余额不足（OpenAI 惯例）
+    - "quota"
+    - "rate_limited"
+  balance_ttl: 30s                      # one-api 余额接口轻量，TTL 可短
+
+# ── 脚本清单：钩子 → 文件/函数 显式映射 ─────────────────────
+scripts:
+  list_models:       ./models.ts     # 标准格式，透传
+  quota_balance:     ./quota.ts      # one-api 余额接口定制
+  convert_response:  ./convert.ts    # usage 多维明细归一化（extract_usage）
+  # convert_request:  ./convert.ts   # 模型映射等（需要时写，见 convert.ts 示例）
