@@ -23,7 +23,8 @@
 | | [openai-forward](./02-lightweight-gateway/openai-forward.md) | ~1k | Python | 纯转发+缓存（已归档） | ❌ | WebUI | ❌ |
 | [03 · 云原生](./03-cloud-native-gateway/README.md) | [Higress](./03-cloud-native-gateway/higress.md) | 9.2k | Go | Envoy+Wasm 插件 | ❌ | ✅ | 插件 |
 | | [Envoy AI Gateway](./03-cloud-native-gateway/envoy-ai-gateway.md) | 1.9k | Go | Envoy 标准 AI 网关 | ❌ | ❌ | ❌ |
-| [04 · 网页/订阅转API](./04-web2api/README.md) | [sub2api](./04-web2api/sub2api.md) ⭐ | 37.8k | Go | 订阅账号→OpenAI API | ✅ | ✅ | ✅ |
+| [04 · 网页/订阅转API](./04-web2api/README.md) | [CLIProxyAPI](./04-web2api/cliproxyapi/cliproxyapi.md) ⭐ | 48.5k | Go | **CLI 订阅→兼容 API，RelayHub 直接竞品** | - | - | - |
+| | [sub2api](./04-web2api/sub2api.md) ⭐ | 37.8k | Go | 订阅账号→OpenAI API | ✅ | ✅ | ✅ |
 | | [gpt4free](./04-web2api/gpt4free.md) | 66.6k | Python | 网页端聚合转 API | ❌ | GUI | ❌ |
 | | [chatgpt2api](./04-web2api/chatgpt2api.md) | 5.9k | Python | ChatGPT 官网协议逆向 | ❌ | ❌ | 号池 |
 | | [openai-cpa](./04-web2api/openai-cpa.md) | 1.4k | - | CPA/Sub2API 控制面 | ❌ | ✅ | ❌ |

@@ -66,3 +66,6 @@
 	path = docs/analysis/05-ecosystem/sub-store/sub-store
 	url = https://github.com/sub-store-org/Sub-Store.git
 	branch = master
+[submodule "docs/analysis/04-web2api/cliproxyapi/CLIProxyAPI"]
+	path = docs/analysis/04-web2api/cliproxyapi/CLIProxyAPI
+	url = https://github.com/router-for-me/CLIProxyAPI.git

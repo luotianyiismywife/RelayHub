@@ -27,6 +27,7 @@ flowchart LR
 ### 核心中转服务（订阅 → API）
 | 项目 | Star | 语言 | 说明 |
 |---|---|---|---|
+| [CLIProxyAPI](./cliproxyapi/cliproxyapi.md) ⭐ | 48.5k | Go | **CLI 订阅 → 兼容 API 代理，RelayHub 直接竞品/重点参考**，821 release，Go SDK |
 | [sub2api](./sub2api.md) | 37.8k | Go | ⭐ 订阅账号统一转 OpenAI API，当前最火，插件直接参照物 |
 | [gpt4free](./gpt4free.md) | 66.6k | Python | 聚合各网页端，FastAPI 出 OpenAI 兼容接口 |
 
