@@ -14,9 +14,11 @@
 
 | 能力 | 归属 | 上游插件要做的 | 内核/内核插件做的 |
 |---|---|---|---|
-| **端点/协议** | 上游插件 | `apis` 声明路径+方法；四协议内核内置 | 协议分发、入口转换 |
-| **鉴权** | 上游插件 | `auth` 声明类型+key；`auth.query` 声明查询凭据 | 凭据托管（docker secret） |
-| **静态规则** | 上游插件 | `special`：强制头/必传字段/透传剥离 | 转发时注入 |
+| **端点/协议** | 上游插件 | `apis` 声明路径+方法；`base_url` 声明入口（可 `{{ref:}}`）；四协议内核内置 | 协议分发、入口转换、URL 拼接 |
+| **鉴权** | 上游插件 | `auth` 声明类型+key（含 `static` 匿名固定值/`none` 无鉴权）；`auth.query` 声明查询凭据 | 凭据托管（docker secret） |
+| **请求头注入** | 上游插件 | `headers`（全局注入）+ `special.headers`（协议级）：静态/模板/配置引用 | 转发时模板解析注入 |
+| **请求体默认参数** | 上游插件 | `body.defaults` 声明必传默认字段（客户端显式值优先） | 合并注入 |
+| **出口代理** | 上游插件 | `network.proxy_pool` 引用代理池（绕 IP 限速/地区限制） | 内核连接层按策略轮换出口 IP |
 | **模型列表** | 上游插件 | `list_models` 返回 `ModelInfo[]`（含 capabilities） | 聚合/过滤/刷新调度 |
 | **模型映射** | **数据在插件** | `model_map` 声明外部名→上游名 | **行为在内核**（ModelResolver 解析） |
 | **协议修正** | 上游插件 | `convert_request/response`（平台怪癖） | 调用钩子 |
@@ -45,10 +47,11 @@
 
 | 文件 | 说明 |
 |---|---|
-| `upstream.yaml` | 上游定义（**必须填写**：kind/端点/认证/脚本映射） |
+| `upstream.yaml` | 上游定义（**必须填写**：kind/端点/认证/脚本映射；可选 `base_url`/`headers`/`body`/`network`） |
 | `http.yaml` | **状态码 → 动作映射**（**必须按平台实测改**；文件头注释含全部字段说明/动作语义/状态码速查） |
-| `convert.ts` | convert_request / convert_response（协议修正 + usage 归一化） |
-| `models.ts` | list_models（**默认必配**：模型列表归一化） |
+| `models.yaml` | 模型列表声明/缓存（由 models.ts 生成，内核读取，**勿手改**）★ 2026-08-24 新增 |
+| `convert.ts` | convert_request / convert_response（参数修正 + usage 归一化，**不做格式转换**） |
+| `models.ts` | list_models（**默认必配**：模型列表归一化 + _→- 转换，生成 models.yaml） |
 | `quota.ts` | 双钩子：quota_balance（balance 用）+ quota_usage（quota 用） |
 | `package.json` | 插件元数据（**必须填写**：name/version） |
 | `README.md` | 平台说明（可选） |

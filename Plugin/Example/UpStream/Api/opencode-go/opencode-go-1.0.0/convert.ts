@@ -1,4 +1,5 @@
-// OpenCode Go 协议转换 hooks
+// OpenCode Go 协议修正 hooks
+// ⚠️ 不做格式转换（2026-08-24 简化）：客户端格式 = 上游格式，零转换
 // convert_request / convert_response（标准协议，透传）
 // usage 多维明细归一化（契约见插件模板分类 §0.6）：供 Kernel-billing / Kernel-usage 消费
 

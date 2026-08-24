@@ -1,6 +1,6 @@
-// one-api 协议转换 hooks（示例：模型映射）
-// convert_request：多级代理场景下，把对外暴露的模型名映射成 one-api 的模型名
-// （模板预留：模型映射和格式转换是下一步要研究的事，这里给个雏形）
+// one-api 协议修正 hooks
+// ⚠️ 不做格式转换（2026-08-24 简化）：客户端格式 = 上游格式，零转换
+// convert_request：模型映射由 yaml model_map 负责（数据在插件，行为在内核），本钩子只做参数修正
 // convert_response：usage 多维明细归一化（契约见插件模板分类 §0.6）
 
 export async function convert_request(req: Req, ctx: Ctx): Promise<Req> {

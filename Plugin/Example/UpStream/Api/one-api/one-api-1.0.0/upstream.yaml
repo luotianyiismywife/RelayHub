@@ -31,6 +31,9 @@ auth:
   key_field: Authorization
   credentials: ref:one-api-prod     # docker secret 引用
 
+# ── 入口地址（可选，默认取插件内置值）───────────────────────
+base_url: "{{ref:one_api_base_url}}"
+
 # ── 静态规则（多级代理场景）────────────────────────────────
 special:
   # 中转站作为上游时，透传链路追踪头（多级代理标识）
@@ -40,11 +43,10 @@ special:
   strip_headers:
     - x-relayhub-key
 
-# ── 协议策略（one-api 通常全协议开放，默认 openai）──────────
+# ── 协议策略（2026-08-24 简化：匹配，不降级）────────────────
+# one-api 通常全协议开放，默认 openai；不做跨格式降级
 protocols:
   preferred: openai
-  order: [openai, anthropic, responses]
-  fallback: openai
 
 # ── key 轮换错误判定（one-api）─────────────────────────────
 # one-api 是 OpenAI 兼容网关：余额不足按 OpenAI 惯例返回 429（而非 402）

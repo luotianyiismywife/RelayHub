@@ -1,11 +1,14 @@
-// <插件名> 协议转换 hooks（可选，平台有怪癖才需要）
+// <插件名> 协议修正 hooks（可选，平台有怪癖才需要）
+// ════════════════════════════════════════════════════════════════
+// ⚠️ 不做格式转换（2026-08-24 简化）：客户端格式 = 上游格式，零转换
+//    客户端格式不在 capabilities 里 → 内核直接 400 报错
+//    本文件只做同格式内的参数修正（平台怪癖）+ usage 归一化
 // ════════════════════════════════════════════════════════════════
 // 协议情况总览 —— 遇到哪种情况，写在哪里（照着对号入座）：
-//   · 静态强制头 / 必传字段（如 anthropic-version、max_tokens）→ yaml special
+//   · 静态强制头 / 必传字段（如 anthropic-version、max_tokens）→ yaml special / body.defaults
 //   · 条件逻辑（thinking 模式限制 / 工具格式差异 / 参数互斥）→ 本文件 convert_request
 //   · 响应修正（工具调用文本化 / 字段重写）→ 本文件 convert_response
 //   · usage 多维明细（缓存读/推理等）→ 本文件 extract_usage（见下）
-//   ⚠️ 协议入口转换（客户端格式 → 标准 OpenAI）是内核内置，本文件只管"标准→上游"的出口修正
 // ════════════════════════════════════════════════════════════════
 // 静态头已在 yaml special.headers，这里只管条件逻辑
 
@@ -45,13 +48,13 @@ function extract_usage(raw: any): TokenUsage | undefined {
   const u: TokenUsage = {}
   const ptd = raw.prompt_tokens_details ?? {}
   const ctd = raw.completion_tokens_details ?? {}
-  // 基础字段（各协议内核入口已归一化成 prompt_tokens/completion_tokens）
+  // 基础字段（上游返回的 prompt_tokens/completion_tokens）
   if (typeof raw.prompt_tokens === "number")     u.prompt = raw.prompt_tokens
   if (typeof raw.completion_tokens === "number") u.completion = raw.completion_tokens
   // OpenAI 子维度
   if (typeof ptd.cached_tokens === "number")     u.cacheRead = ptd.cached_tokens
   if (typeof ctd.reasoning_tokens === "number")  u.reasoning = ctd.reasoning_tokens
-  // Anthropic 子维度（内核入口转换时已并入 prompt/completion，这里补明细）
+  // Anthropic 子维度（上游返回的 cache_read_input_tokens 等，这里补明细）
   if (typeof raw.cache_read_input_tokens === "number")     u.cacheRead = raw.cache_read_input_tokens
   if (typeof raw.cache_creation_input_tokens === "number") u.cacheWrite = raw.cache_creation_input_tokens
   // Gemini 子维度

@@ -1,0 +1,202 @@
+# ════════════════════════════════════════════════════════════════
+# models.yaml —— tokenrhythm 模型列表（由 models.ts 生成，勿手改）
+# ════════════════════════════════════════════════════════════════
+# 生成时间：2026-08-24T12:00:00Z
+# 数据来源：GET https://tokenrhythm.studio/v1/models
+# 归一化：模型名 _→- 已在 models.ts 完成
+# ════════════════════════════════════════════════════════════════
+
+models:
+  - id: deepseek-v4-flash
+    capabilities:
+      openai: true
+      anthropic: true
+      responses: false
+      gemini: false
+      tools: true
+    limits:
+      context: 1000000
+      maxOutput: 384000
+
+  - id: deepseek-v4-pro
+    capabilities:
+      openai: true
+      anthropic: true
+      responses: false
+      gemini: false
+      tools: true
+    limits:
+      context: 1000000
+      maxOutput: 384000
+
+  - id: glm-5
+    capabilities:
+      openai: true
+      anthropic: true
+      responses: false
+      gemini: false
+      tools: true
+    limits:
+      context: 1000000
+      maxOutput: 128000
+
+  - id: glm-5.1
+    capabilities:
+      openai: true
+      anthropic: true
+      responses: false
+      gemini: false
+      tools: true
+    limits:
+      context: 200000
+      maxOutput: 128000
+
+  - id: minimax-m2.7
+    capabilities:
+      openai: true
+      anthropic: true
+      responses: false
+      gemini: false
+      tools: true
+    limits:
+      context: 200000
+      maxOutput: 192000
+
+  - id: kimi-k2.5
+    capabilities:
+      openai: true
+      anthropic: true
+      responses: false
+      gemini: false
+      vision: true
+      tools: true
+    limits:
+      context: 256000
+      maxOutput: 64000
+
+  - id: kimi-k2.6
+    capabilities:
+      openai: true
+      anthropic: true
+      responses: false
+      gemini: false
+      vision: true
+      tools: true
+    limits:
+      context: 256000
+      maxOutput: 128000
+
+  - id: minimax-m2.5
+    capabilities:
+      openai: true
+      anthropic: true
+      responses: false
+      gemini: false
+      tools: true
+    limits:
+      context: 200000
+      maxOutput: 200000
+
+  - id: mimo-v2.5-pro
+    capabilities:
+      openai: true
+      anthropic: true
+      responses: false
+      gemini: false
+      tools: true
+    limits:
+      context: 256000
+      maxOutput: 256000
+
+  - id: qwen3.7-max
+    capabilities:
+      openai: true
+      anthropic: false
+      responses: true
+      gemini: false
+      tools: true
+    limits:
+      context: 1000000
+      maxOutput: 131072
+
+  - id: kimi-k2.7-code
+    capabilities:
+      openai: true
+      anthropic: false
+      responses: false
+      gemini: false
+      vision: true
+      tools: true
+    limits:
+      context: 256000
+      maxOutput: 16000
+
+  - id: glm-5.2
+    capabilities:
+      openai: true
+      anthropic: true
+      responses: false
+      gemini: false
+      tools: true
+    limits:
+      context: 1000000
+      maxOutput: 128000
+
+  - id: qwen3.8-max
+    capabilities:
+      openai: true
+      anthropic: false
+      responses: true
+      gemini: false
+      vision: true
+      tools: true
+    limits:
+      context: 1000000
+      maxOutput: 131072
+
+  - id: deepseek-v4-flash-0731
+    capabilities:
+      openai: true
+      anthropic: true
+      responses: true
+      gemini: false
+      tools: true
+    limits:
+      context: 1000000
+      maxOutput: 384000
+
+  - id: seed-2.1-turbo
+    capabilities:
+      openai: true
+      anthropic: false
+      responses: true
+      gemini: false
+      vision: true
+      tools: true
+    limits:
+      context: 262144
+      maxOutput: 131072
+
+  - id: seed-2.1-pro
+    capabilities:
+      openai: true
+      anthropic: false
+      responses: true
+      gemini: false
+      vision: true
+      tools: true
+    limits:
+      context: 262144
+      maxOutput: 131072
+
+  - id: deepseek-v4-pro-0813
+    capabilities:
+      openai: true
+      anthropic: true
+      responses: false
+      gemini: false
+      tools: true
+    limits:
+      context: 1000000
+      maxOutput: 384000
+

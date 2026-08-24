@@ -8,11 +8,12 @@
 
 | 文件 | 说明 |
 |---|---|
-| `upstream.yaml` | 上游定义（含 pass_headers / strip_headers 多级代理示例） |
+| `upstream.yaml` | 上游定义（含 `base_url` / pass_headers / strip_headers 多级代理示例） |
 | `http.yaml` | 状态码 → 动作映射（rotate/cooldown/retry/passthrough，无 402） |
-| `models.ts` | 模型列表（标准 OpenAI 格式，透传） |
+| `models.yaml` | 模型列表声明/缓存（由 models.ts 生成，内核读取，勿手改）★ 2026-08-24 新增 |
+| `models.ts` | 模型列表（标准 OpenAI 格式，_→- 转换，生成 models.yaml） |
 | `quota.ts` | 余额查询（one-api 内部接口 /api/user/self，quota→金额） |
-| `convert.ts` | 协议转换 + usage 归一化（extract_usage） |
+| `convert.ts` | 参数修正（**不做格式转换**，usage 归一化） |
 | `package.json` | 插件元数据 |
 
 ## 平台要点

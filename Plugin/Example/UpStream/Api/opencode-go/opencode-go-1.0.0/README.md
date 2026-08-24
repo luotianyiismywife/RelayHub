@@ -8,11 +8,12 @@
 
 | 文件 | 说明 |
 |---|---|
-| `upstream.yaml` | 上游定义（端点/认证/计费/脚本映射） |
+| `upstream.yaml` | 上游定义（端点/认证/计费/脚本映射；含 `base_url`） |
 | `http.yaml` | 状态码 → 动作映射（rotate/cooldown/retry/passthrough，无 402） |
+| `models.yaml` | 模型列表声明/缓存（由 models.ts 生成，内核读取，勿手改）★ 2026-08-24 新增 |
 | `quota.ts` | 套餐限额多窗口查询（quota_usage + 宽容解析） |
-| `models.ts` | 模型列表归一化（list_models） |
-| `convert.ts` | 协议转换（convert_request / convert_response，usage 归一化） |
+| `models.ts` | 模型列表归一化（list_models + _→- 转换，生成 models.yaml） |
+| `convert.ts` | 参数修正（convert_request / convert_response，**不做格式转换**，usage 归一化） |
 | `package.json` | 插件元数据 |
 
 ## 平台要点

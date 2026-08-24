@@ -39,20 +39,20 @@ auth:
   key_field: Authorization
   credentials: ref:opencode-go-prod    # docker secret 引用
 
+# ── 入口地址（可选，默认取插件内置值）───────────────────────
+base_url: "{{ref:opencode_go_base_url}}"
+
 # ── 静态规则 ───────────────────────────────────────────────
 special:
   headers:
     anthropic:
       anthropic-version: "2023-06-01"
 
-# ── 协议策略 ───────────────────────────────────────────────
+# ── 协议策略（2026-08-24 简化：匹配，不降级）────────────────
+# 不做跨格式降级：客户端格式不在 capabilities 里 → 直接 400 报错
+# opencode-go 的协议选择实际由模型目录（models.dev）的 provider.npm 决定
 protocols:
   preferred: openai
-  # 注意：opencode-go 的协议选择实际由模型目录（models.dev）的
-  # provider.npm 决定（@ai-sdk/openai / anthropic / google / openai-compatible），
-  # 此处 order 仅作未知模型的兜底顺序。
-  order: [openai, anthropic, responses]
-  fallback: openai
 
 # ── key 轮换错误判定（opencode-go）─────────────────────────
 # 标准 OpenAI 风格：无 402（套餐制），余额不足由 useBalance 标志指示

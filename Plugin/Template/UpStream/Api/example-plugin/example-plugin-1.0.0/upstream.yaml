@@ -25,6 +25,11 @@ depends:
   kernel: "^0.1"                  # ← 依赖内核 SDK 版本范围（虚拟依赖）
   Kernel-billing: "~1.2"          # ← 依赖其他插件（页面插件依赖内核插件产数据时才需要）
 
+# ── 入口地址（可选，默认取插件内置值）───────────────────────
+# apis.path 是相对路径，host/前缀在这里配。支持 {{ref:...}} 从 config.yaml 读取：
+#   场景：官方域名 / 自建反代 / 内网镜像 切换时只改配置，不动插件
+base_url: "{{ref:<插件名>_base_url}}"   # ← 示例：配置引用；静态直写亦可
+
 # ── 端点（key = 协议名，内核按协议分发）────────────────────
 # 内核内置四协议：openai / anthropic / responses / gemini；其他协议用 ts 实现
 # 平台支持哪些协议就写哪些；models/embeddings 等通用端点单独列出
@@ -48,14 +53,45 @@ apis:
     path: /v1/embeddings
     method: POST
 
-# ── 认证：API Key（转发用）─────────────────────────────────
+# ── 认证：API Key / 固定值 / 匿名（转发用）──────────────────
 # 注意：转发请求和余额/套餐查询用的凭据可能不同（平台相关）！
 auth:
-  type: bearer                    # bearer | header | query（按平台选）
-  key_field: Authorization        # 放 key 的请求头/字段名
-  credentials: ref:<插件名>-prod   # ← 转发用 key（docker secret 引用名）
+  type: bearer                    # bearer | header | query | static | none（按平台选）
+  key_field: Authorization        # 放 key 的请求头/字段名（static/none 不需要）
+  credentials: ref:<插件名>-prod   # ← 转发用 key（docker secret 引用名；static/none 不需要）
+  value: "public"                 # ← type: static 时用：固定值（如匿名 key "public"）
   query:                          # 查余额/套餐的附加凭据（只有 key 就能查的平台删掉此段）
     cookie: ref:<插件名>-session   # ← 余额查询专用 cookie/session（如 tokenrhythm）
+
+# ── 请求头注入（可选，所有协议统一生效）───────────────────
+# 需要每个协议都带同样的头（如伪装 UA、客户端标识）时用顶层 headers；
+# 只某协议带的头放 special.headers.<协议>（协议级覆盖全局）。
+# 取值方式：
+#   静态值："cli"                            → 直接注入
+#   动态模板："ses_{{random:8}}"              → 内核每次转发生成随机 8 位 hex
+#   同请求复用："msg_{{var:rid}}"             → 与 ses_{{var:rid}} 共享同一随机串（模拟真实客户端 ID 关联）
+#   配置引用："{{ref:user_agent}}"            → 从 config.yaml 读取（版本漂移时用户只改配置）
+#   透传客户端头："{{client_header:x-request-id}}" → 从入站请求取同名头注入
+# 优先级：special.headers.<协议> > headers > convert_request（ts 可最后覆盖）
+headers:
+  # x-opencode-client: "cli"                  # ← 示例：静态值
+  # User-Agent: "{{ref:user_agent}}"          # ← 示例：配置引用
+  # x-opencode-session: "ses_{{var:rid}}"     # ← 示例：同请求复用
+  # x-opencode-request: "msg_{{var:rid}}"
+
+# ── 请求体默认字段注入（可选）─────────────────────────────
+# 平台要求某些参数"必须带"时声明（如 max_tokens），避免在 convert_request 里写死。
+# 优先级：客户端显式传的值 > body.defaults（不覆盖用户请求）
+body:
+  defaults:
+    # max_tokens: 4096            # ← 示例：必传默认参数
+    # stream: true
+
+# ── 出口网络（可选，内核通用能力）─────────────────────────
+# 按请求轮换出口 IP（绕 IP 限速 / 地区限制）。池来源与轮换策略在 config.yaml 配。
+# 场景：opencode zen 免费模型按 IP 限速、muse-spark 禁 HK/SG 节点
+network:
+  proxy_pool: ref:resin-pool      # ← 示例：代理池引用（config.yaml 配来源）
 
 # ── 静态规则（可省略）───────────────────────────────────────
 # 静态强制头 / 必传字段放这里，只有条件逻辑才写 ts
@@ -72,14 +108,10 @@ special:
   strip_headers:                # 多级代理：剥离的头（可选，防止暴露内部信息）
     - x-internal-key
 
-# ── 协议策略（可省略，默认 openai）──────────────────────────
+# ── 协议策略（2026-08-24 简化：匹配，不降级）──────────────────
+# 不做跨格式降级：客户端格式不在 capabilities 里 → 直接 400 报错
 protocols:
   preferred: openai
-  order: [openai, anthropic, responses]
-  fallback: openai
-  fallback_on_error:
-    - 400
-    - 422
 
 # ── key 轮换错误判定（平台相关！每个平台错误代码不一样，需挨个适配）──
 # 只声明"什么错误怎么处理"（判定），轮换机制/模式/冷却/重试次数归内核

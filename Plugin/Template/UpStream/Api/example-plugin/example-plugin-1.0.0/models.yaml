@@ -1,0 +1,242 @@
+# ════════════════════════════════════════════════════════════════
+# models.yaml —— 模型列表声明/缓存文件（示例）
+# ════════════════════════════════════════════════════════════════
+# ⚠️ 本文件由 models.ts 的 list_models 钩子生成，勿手改
+#    内核启动时优先读本文件（快，不调 ts）
+#    定时/手动刷新时内核调 list_models → 覆盖本文件
+#
+# 生成时间：2026-08-24T12:00:00Z          ← 内核写入时填实际时间
+# 数据来源：GET https://api.example.com/v1/models  ← 内核写入时填实际来源
+# 归一化：模型名 _→- 已在 models.ts 完成
+# ════════════════════════════════════════════════════════════════
+#
+# 字段说明：
+#   models[]                    模型列表
+#   .id            string  必填  模型 ID（★ 已归一化 _→-，内核直接用）
+#   .capabilities  object  必填  能力标记
+#     .openai      bool    必填  支持 OpenAI /v1/chat/completions 格式
+#     .anthropic   bool    必填  支持 Anthropic /v1/messages 格式
+#     .responses   bool    必填  支持 OpenAI /v1/responses 格式
+#     .gemini      bool    必填  支持 Gemini generateContent 格式
+#     .vision      bool?   可选  支持图片输入（Kernel-models 可从 OpenRouter 补全）
+#     .thinking    bool?   可选  支持推理/思考（reasoning）
+#     .tools       bool?   可选  支持工具调用（function calling）
+#     .audio       bool?   可选  支持音频输入
+#     .video       bool?   可选  支持视频输入
+#   .limits        object? 可选  模型限制
+#     .context     number? 可选  最大上下文 token 数
+#     .maxOutput   number? 可选  最大输出 token 数（null = 平台未返回）
+#   .supportedParameters  array?  可选  模型支持的参数（客户端能传哪些）
+#     常见值：temperature / top_p / top_k / max_tokens / max_completion_tokens
+#             reasoning / reasoning_effort / include_reasoning
+#             tools / tool_choice / parallel_tool_calls
+#             response_format / structured_outputs / seed / stop
+#             frequency_penalty / presence_penalty / repetition_penalty
+#             logprobs / top_logprobs / logit_bias / min_p
+#             verbosity / web_search_options / prediction
+#     ⚠️ 各模型不同（GPT-5.6 Sol 不含 temperature/top_p；Claude 含 verbosity）
+#   .defaultParameters    object? 可选  模型默认参数值（客户端没传时用）
+#     .temperature        number?  温度（null = 无默认值，≠ 0）
+#     .top_p              number?  top_p
+#     .top_k              number?  top_k
+#     .frequency_penalty  number?  频率惩罚
+#     .presence_penalty   number?  存在惩罚
+#     .repetition_penalty number?  重复惩罚
+#     ⚠️ null 语义：null 表示"无默认值"（≠ 0），客户端没传时不用默认值填充
+#   .reasoning    object? 可选  推理/思考详细配置
+#     .mandatory          bool    必填  是否强制开启推理
+#     .defaultEnabled     bool?   可选  默认是否开启
+#     .supportedEfforts   array?  可选  支持的思考等级 ["max","high","medium","low"]
+#     .defaultEffort      string? 可选  默认思考等级
+#   .expirationDate   string? 可选  模型下线日期（免费模型限时）
+#   .knowledgeCutoff  string? 可选  知识截止日期
+#   .pricing      object? 可选  模型定价（★ 插件自己填，不从 OpenRouter 补全）
+#     .prompt      number? 可选  输入单价（$/1M token 或平台单位）
+#     .completion  number? 可选  输出单价
+#     .cacheRead   number? 可选  缓存读单价
+#     .cacheWrite  number? 可选  缓存写单价（5min TTL）
+#     .cacheWrite1h number? 可选  缓存写单价（1h TTL，Claude 特有）
+#     .reasoning   number? 可选  推理 token 单价
+#     .image       number? 可选  图片输入单价
+#     .imageOutput number? 可选  图片输出（生图）单价
+#     .audio       number? 可选  音频输入单价
+#     .audioOutput number? 可选  音频输出单价
+#     .webSearch   number? 可选  web search 按请求单价
+#     .tier        array?  可选  阶梯定价（J3）
+#       .minPromptTokens number  输入超过此阈值换费率
+#       .prompt    number
+#       .completion number
+#
+# 设计要点：
+#   1. id 已归一化：models.ts 写入时 _→- 已完成，内核读时直接用
+#   2. 协议维度必填，能力维度可选：插件能填多少填多少，缺失的 Kernel-models 补全
+#   3. null 语义：maxOutput: null 表示平台未返回（≠ 0），可从外部数据源补全
+#   4. 与 upstream.yaml 的关系：upstream.yaml 声明端点路径，本文件是数据
+# ════════════════════════════════════════════════════════════════
+
+models:
+  # —— 示例 1：标准 OpenAI 兼容模型 ——
+  - id: gpt-4o                            # ★ 已归一化（原始 gpt-4o 无 _，不变）
+    capabilities:
+      openai: true
+      anthropic: false
+      responses: false
+      gemini: false
+      vision: true                        # 支持图片输入
+      thinking: false
+      tools: true                         # 支持工具调用
+      audio: false
+      video: false
+    limits:
+      context: 128000
+      maxOutput: 16384
+
+  # —— 示例 2：含下划线的模型名（归一化后）——
+  # 原始 id: qwen_3.5_max → 归一化后: qwen-3.5-max
+  - id: qwen-3.5-max
+    capabilities:
+      openai: true
+      anthropic: false                    # 该模型不支持 anthropic 格式
+      responses: false
+      gemini: false
+      vision: true
+      thinking: true
+      tools: true
+    limits:
+      context: 1000000
+      maxOutput: 131072
+
+  # —— 示例 3：Claude 系（支持多协议 + 推理配置）——
+  - id: claude-sonnet-4
+    capabilities:
+      openai: true                        # 中转站通常用 openai 格式调 Claude
+      anthropic: true                     # 也支持原生 anthropic 格式
+      responses: false
+      gemini: false
+      vision: true
+      thinking: true
+      tools: true
+    limits:
+      context: 1000000
+      maxOutput: 64000
+    supportedParameters:                  # 模型支持的参数
+      - temperature
+      - top_p
+      - max_tokens
+      - reasoning
+      - reasoning_effort
+      - tools
+      - tool_choice
+      - response_format
+      - structured_outputs
+    defaultParameters:                    # 默认参数值（客户端没传时用）
+      temperature: 1                      # 有默认值
+      top_p: 0.95
+      # null 表示"无默认值"（≠ 0），客户端没传时不用默认值填充
+      # frequency_penalty: null
+      # presence_penalty: null
+      # repetition_penalty: null
+    reasoning:                            # 推理/思考配置
+      mandatory: false                    # 不强制开启
+      defaultEnabled: true                # 默认开
+      supportedEfforts: ["max", "xhigh", "high", "medium", "low"]
+      defaultEffort: "high"
+
+  # —— 示例 4：只支持 responses 协议的模型 ——
+  - id: muse-spark-1.2-contributor-free
+    capabilities:
+      openai: false                       # 不支持 openai 格式
+      anthropic: false
+      responses: true                     # 只走 responses
+      gemini: false
+      vision: true
+      thinking: true
+      tools: true
+      audio: true
+      video: true
+    limits:
+      context: 1048576
+      maxOutput: null                     # 平台未返回，Kernel-models 可从 OpenRouter 补全
+
+  # —— 示例 5：能力字段缺失（只填协议维度，等 Kernel-models 补全）——
+  #     注意：pricing 缺失也不从 OpenRouter 补全（各平台价格不同）
+  - id: deepseek-v4-flash
+    capabilities:
+      openai: true
+      anthropic: false
+      responses: false
+      gemini: false
+      # vision/thinking/tools 等未填 → Kernel-models 从 OpenRouter 补全
+    limits:
+      context: 1048576
+      # maxOutput 未填 → 同上补全
+    # pricing 未填 → 不从 OpenRouter 补全（各平台价格不同），Kernel-billing 按 unknown 处理
+
+  # —— 示例 5b：GPT-5.6 Sol 风格（supportedParameters 不含 temperature/top_p）——
+  #     部分推理模型不支持 temperature/top_p，supportedParameters 里就没有
+  - id: gpt-5.6-sol
+    capabilities:
+      openai: true
+      anthropic: false
+      responses: false
+      gemini: false
+      vision: true
+      thinking: true
+      tools: true
+    limits:
+      context: 1050000
+      maxOutput: 128000
+    supportedParameters:                  # ★ 注意：不含 temperature/top_p（推理模型）
+      - include_reasoning
+      - max_completion_tokens
+      - max_tokens
+      - reasoning
+      - reasoning_effort
+      - response_format
+      - seed
+      - structured_outputs
+      - tool_choice
+      - tools
+    defaultParameters:                    # 全 null = 无默认值（≠ 0）
+      temperature: null
+      top_p: null
+      top_k: null
+      frequency_penalty: null
+      presence_penalty: null
+      repetition_penalty: null
+    reasoning:
+      mandatory: false
+      defaultEnabled: true
+      supportedEfforts: ["max", "xhigh", "high", "medium", "low", "none"]
+      defaultEffort: "medium"
+    pricing:
+      prompt: 2
+      completion: 10
+      cacheRead: 0.2
+      cacheWrite: 2.5
+      webSearch: 10
+      tier:
+        - minPromptTokens: 272000
+          prompt: 4
+          completion: 15
+
+  # —— 示例 6：强制推理模型（mandatory: true）+ 限时下线 ——
+  - id: muse-spark-1.2-contributor-free
+    capabilities:
+      openai: false
+      anthropic: false
+      responses: true
+      gemini: false
+      vision: true
+      thinking: true                      # 强制推理（mandatory: true）
+      tools: true
+      audio: true
+      video: true
+    limits:
+      context: 1048576
+      maxOutput: null
+    reasoning:
+      mandatory: true                     # ★ 强制开启推理（不能关）
+      supportedEfforts: ["xhigh", "high", "medium", "low", "minimal"]
+      defaultEffort: "medium"
+    expirationDate: "2026-12-31"          # ★ 免费模型限时（K8 生命周期）

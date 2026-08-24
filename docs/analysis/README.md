@@ -32,6 +32,7 @@
 | [05 · 生态工具](./05-ecosystem/README.md) | [metapi](./05-ecosystem/metapi.md) | 3.2k | TS | 多中转站聚合入口 | ❌ | ✅ | ❌ |
 | | [all-api-hub](./05-ecosystem/all-api-hub.md) | 4.7k | TS | 账号管理看板 | ✅ | ✅ | ❌ |
 | | [Sub-Store](./05-ecosystem/sub-store.md) | 10.3k | JS | 订阅转换器 | ❌ | ✅ | ❌ |
+| [06 · 商业参考](./06-commercial-reference/README.md) | [OpenRouter](./06-commercial-reference/openrouter/openrouter.md) | - | - | 闭源 AI 聚合路由 | - | - | - |
 
 ## 架构共性总结（写 RelayHub 时直接套用）
 

@@ -1,0 +1,59 @@
+# ════════════════════════════════════════════════════════════════════
+# http.yaml —— OpenCode Zen 状态码 → 动作映射
+# ════════════════════════════════════════════════════════════════════
+# 判定在插件（本文件声明"什么状态码怎么处理"），机制在内核（config.yaml）。
+# ★ 本平台特例：匿名 key（public）+ 代理池出口（network.proxy_pool）——
+#   rotate 语义在"无 key 可换"的场景下 = 换出口 IP（换代理节点重试）。
+#   429（IP 限速）与 403（地区限制）都标 rotatable，让内核换出口后重试。
+# ★ 基于 zen 源码 + 抓包推断，429/403 的确切行为需实测校准。
+# ════════════════════════════════════════════════════════════════════
+version: 1
+default:
+  action: passthrough
+  rotatable: false
+  retryable: false
+codes:
+  "400":
+    action: passthrough
+    reason: bad_request
+  "401":
+    action: rotate
+    reason: invalid_credential      # public 被拒（接口可能变更）→ 换出口试
+    rotatable: true
+    retryable: true
+  "403":
+    action: cooldown                # ★ zen：地区限制（countryNotAllowed）
+    reason: country_not_allowed     # muse-spark 禁 HK/SG → 冷却后换美国等出口
+    rotatable: true
+    retryable: true
+  "404":
+    action: passthrough
+    reason: not_found
+  "408":
+    action: retry
+    reason: request_timeout
+    retryable: true
+  "422":
+    action: passthrough
+    reason: unprocessable_content
+  "429":
+    action: cooldown                # ★ IP 维度限速（allowAnonymous + ipRateLimiter）
+    reason: rate_limited            # → 冷却后换出口 IP 重试
+    rotatable: true
+    retryable: true
+  "500":
+    action: retry
+    reason: server_error
+    retryable: true
+  "502":
+    action: retry
+    reason: bad_gateway
+    retryable: true
+  "503":
+    action: retry
+    reason: service_unavailable
+    retryable: true
+  "504":
+    action: retry
+    reason: gateway_timeout
+    retryable: true
