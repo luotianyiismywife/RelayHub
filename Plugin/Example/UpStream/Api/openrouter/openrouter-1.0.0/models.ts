@@ -7,10 +7,11 @@
 //   OpenRouter：/api/v1/models 返回全量字段 → 本钩子直接填满内核消费字段
 //   详见 analysis/06-commercial-reference/openrouter/openrouter.md §1.2 字段映射表
 //
-// ★ 只填内核消费字段（2026-08-25 精简，持久化分组表见模型映射 §3.2.1）：
+// ★ 只填主结构字段（2026-08-25 精简，主结构见模型映射 §3.2.1）：
 //   models.yaml = 内核路由/计费用的数据，不是 OpenRouter API 的全量转储
-//   必填 id/raw_id/capabilities + 按需 limits/supportedParameters/defaultParameters/
-//   reasoning/pricing/knowledgeCutoff/expirationDate；展示层字段（displayName 等）不填
+//   必填 id/raw_id/capabilities + 按需 displayName/description/limits/
+//   supportedParameters/defaultParameters/reasoning/pricing/knowledgeCutoff/expirationDate
+//   无关字段（created/aliases/benchmarks/supportedVoices 等）不映射
 //
 // ★ 模型 ID 归一化（2026-08-25，模型映射 §2.5.2）：
 //   OpenRouter ID = provider/model 格式 + 变体后缀 :free / :batch
@@ -40,10 +41,12 @@ export async function list_models(ctx: Ctx): Promise<ModelInfo[]> {
       id: normalize_id(m.id),
       raw_id: m.id,                              // ★ 原始 provider/model（转发时原样带上）
 
-      // —— 基础信息（只留内核消费：K8 免费模型下线 / 生命周期）——
+      // —— 基础信息（展示 + 生命周期）——
+      displayName: m.name,                       // 页面插件展示用（如 "Anthropic: Claude Opus 5"）
+      description: m.description,                // 页面插件展示用
       knowledgeCutoff: m.knowledge_cutoff,
       expirationDate: m.expiration_date,         // 免费模型限时下线（K8）
-      // displayName/description/created 是展示层字段，models.yaml 不存（见头部说明）
+      // created 无关不映射（见头部说明）
 
       // —— 能力（OpenRouter 平台级转换 → 三格式全 true）——
       capabilities: {
@@ -98,10 +101,9 @@ function normalize_id(id: string): string {
 }
 
 // ── pricing 解析：OpenRouter 返回字符串（"0.000005"）→ number ──
-// 字段映射见 ModelInfo 契约（§0.7 / openrouter.md §1.2.3）：
+// 字段映射见模型映射 §3.2.1 契约（唯一权威）：
 //   prompt/completion/input_cache_read/web_search/input_cache_write/audio/
-//   input_cache_write_1h/internal_reasoning/image/input_audio_cache/
-//   image_output/audio_output → pricing.*；overrides → pricing.tier
+//   input_cache_write_1h/internal_reasoning/image/image_output/audio_output → pricing.*；overrides → pricing.tier
 function parse_pricing(p: any): ModelInfo["pricing"] | undefined {
   if (!p || typeof p !== "object") return undefined
   const num = (v: any): number | undefined =>
@@ -117,7 +119,6 @@ function parse_pricing(p: any): ModelInfo["pricing"] | undefined {
   if (num(p.input_cache_write_1h) !== undefined) out.cacheWrite1h = num(p.input_cache_write_1h)
   if (num(p.internal_reasoning) !== undefined)   out.reasoning = num(p.internal_reasoning)
   if (num(p.image) !== undefined)                out.image = num(p.image)
-  if (num(p.input_audio_cache) !== undefined)    out.audioCacheRead = num(p.input_audio_cache)
   if (num(p.image_output) !== undefined)         out.imageOutput = num(p.image_output)
   if (num(p.audio_output) !== undefined)         out.audioOutput = num(p.audio_output)
 
