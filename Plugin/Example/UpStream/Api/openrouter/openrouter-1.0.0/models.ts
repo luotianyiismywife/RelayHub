@@ -8,10 +8,11 @@
 //   详见 analysis/06-commercial-reference/openrouter/openrouter.md §1.2 字段映射表
 //
 // ★ 只填主结构字段（2026-08-25 精简，主结构见模型映射 §3.2.1）：
-//   models.yaml = 内核路由/计费用的数据，不是 OpenRouter API 的全量转储
+//   models.yaml = 内核路由用的数据，不是 OpenRouter API 的全量转储
 //   必填 id/raw_id/capabilities + 按需 displayName/description/limits/
-//   supportedParameters/defaultParameters/reasoning/pricing/knowledgeCutoff/expirationDate
-//   无关字段（created/aliases/benchmarks/supportedVoices 等）不映射
+//   supportedParameters/defaultParameters/reasoning/knowledgeCutoff/expirationDate
+//   无关字段（pricing/created/aliases/benchmarks/supportedVoices 等）不映射
+//   （pricing 归上游/中转站自己算，RelayHub 只转发）
 //
 // ★ 模型 ID 归一化（2026-08-25，模型映射 §2.5.2）：
 //   OpenRouter ID = provider/model 格式 + 变体后缀 :free / :batch
@@ -84,12 +85,10 @@ export async function list_models(ctx: Ctx): Promise<ModelInfo[]> {
         supportedEfforts: m.reasoning.supported_efforts,   // ["max","high","medium","low"]
         defaultEffort: m.reasoning.default_effort,
       } : undefined,
-
-      // —— pricing（★ 字符串 → 数字转换，见 parse_pricing；Kernel-billing 计费用）——
-      pricing: parse_pricing(m.pricing),
-      // 其余契约字段（aliases/benchmarks/supportedVoices/perRequestLimits/
-      // isModerated/tokenizer/instructType/modality）为"可存但不对外展示"，
-      // 展示层用不上、白占体积 → 不写进 models.yaml（见头部说明）
+      // 其余契约字段（pricing/created/aliases/benchmarks/supportedVoices/
+      // perRequestLimits/isModerated/tokenizer/instructType/modality）不映射：
+      // pricing 归上游/中转站自己算，RelayHub 只转发（模型映射 §3.2.1）；
+      // 其余无关字段白占体积 → 不写进 models.yaml（见头部说明）
     }
   })
 }
@@ -98,41 +97,4 @@ export async function list_models(ctx: Ctx): Promise<ModelInfo[]> {
 // :free/:batch 转 -free/-batch（保留变体语义，不剥离 → 不与基础模型撞名）
 function normalize_id(id: string): string {
   return id.replace(/[_/:]/g, "-")
-}
-
-// ── pricing 解析：OpenRouter 返回字符串（"0.000005"）→ number ──
-// 字段映射见模型映射 §3.2.1 契约（唯一权威）：
-//   prompt/completion/input_cache_read/web_search/input_cache_write/audio/
-//   input_cache_write_1h/internal_reasoning/image/image_output/audio_output → pricing.*；overrides → pricing.tier
-function parse_pricing(p: any): ModelInfo["pricing"] | undefined {
-  if (!p || typeof p !== "object") return undefined
-  const num = (v: any): number | undefined =>
-    v === undefined || v === null ? undefined : Number(v)
-
-  const out: ModelInfo["pricing"] = {}
-  if (num(p.prompt) !== undefined)               out.prompt = num(p.prompt)
-  if (num(p.completion) !== undefined)           out.completion = num(p.completion)
-  if (num(p.input_cache_read) !== undefined)     out.cacheRead = num(p.input_cache_read)
-  if (num(p.web_search) !== undefined)           out.webSearch = num(p.web_search)
-  if (num(p.input_cache_write) !== undefined)    out.cacheWrite = num(p.input_cache_write)
-  if (num(p.audio) !== undefined)                out.audio = num(p.audio)
-  if (num(p.input_cache_write_1h) !== undefined) out.cacheWrite1h = num(p.input_cache_write_1h)
-  if (num(p.internal_reasoning) !== undefined)   out.reasoning = num(p.internal_reasoning)
-  if (num(p.image) !== undefined)                out.image = num(p.image)
-  if (num(p.image_output) !== undefined)         out.imageOutput = num(p.image_output)
-  if (num(p.audio_output) !== undefined)         out.audioOutput = num(p.audio_output)
-
-  // 阶梯定价（overrides → tier）：输入超过 min_prompt_tokens 换费率
-  if (Array.isArray(p.overrides)) {
-    out.tier = p.overrides.map((t: any) => ({
-      minPromptTokens: t.min_prompt_tokens,
-      prompt: num(t.prompt),
-      completion: num(t.completion),
-      cacheRead: num(t.input_cache_read),
-      cacheWrite: num(t.input_cache_write),
-      cacheWrite1h: num(t.input_cache_write_1h),
-      audio: num(t.audio),
-    }))
-  }
-  return Object.keys(out).length > 0 ? out : undefined
 }

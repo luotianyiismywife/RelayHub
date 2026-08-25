@@ -26,13 +26,12 @@
 //   - limits（context/maxOutput）：插件能填则填，缺失 Kernel-models 补全
 //   - supportedParameters/defaultParameters/reasoning：插件能填则填，缺失 Kernel-models 补全
 //   - expirationDate/knowledgeCutoff：插件能填则填，缺失 Kernel-models 补全
-//   - pricing（★ 定价）：插件自己填，不从 OpenRouter 补全（各平台价格不同）
 //   详见 analysis/06-commercial-reference/openrouter/openrouter.md §1.2
 //
 // ⚠️ 契约全量 ≠ 每个插件都填（2026-08-25 教训，openrouter 示例插件踩过）：
 //   完整 ModelInfo 契约 + 持久化分组见文档「模型映射与模型列表设计 §3.2.1」（唯一权威），此处不重复。
-//   必填：id / raw_id / capabilities；按需：displayName/description/limits/.../pricing；
-//   无关不填：created/aliases/benchmarks/supportedVoices 等。
+//   必填：id / raw_id / capabilities；按需：displayName/description/limits/.../reasoning；
+//   无关不填：pricing/created/aliases/benchmarks/supportedVoices 等。
 //   参考实现：openrouter 插件 models.ts
 
 // ── 模型列表 ───────────────────────────────────────────────

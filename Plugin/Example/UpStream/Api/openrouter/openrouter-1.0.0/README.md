@@ -9,8 +9,9 @@
 缺失字段靠 **Kernel-models 从 OpenRouter 补全**（`/api/v1/models` 是全行业最全的模型元数据源）。
 
 OpenRouter 插件反过来了：**它自己就是 OpenRouter**，`/api/v1/models` 返回 422 模型的全量字段
-（architecture / reasoning / supported_parameters / pricing / benchmarks…），
+（architecture / reasoning / supported_parameters / benchmarks…），
 所以本插件的 `list_models` **直接填满 ModelInfo 契约**，不需要 Kernel-models 二次补全。
+（仅映射主结构字段，pricing 等无关字段不映射——计费归上游/中转站自己算，RelayHub 只转发）
 
 ## ★ 模型 ID 归一化（本插件是 `/`→`-` 方案的典型场景）
 
@@ -64,7 +65,7 @@ openrouter_title: "RelayHub"                       # 应用名
 | 文件 | 职责 |
 |---|---|
 | `upstream.yaml` | 平台说明书（端点/认证/头/错误判定） |
-| `models.ts` | ★ list_models：内核消费字段映射（id/raw_id/capabilities/limits/…/pricing）+ ID 归一化（核心） |
+| `models.ts` | ★ list_models：主结构字段映射（id/raw_id/capabilities + 按需 9 键）+ ID 归一化（核心） |
 | `convert.ts` | convert_response usage 归一化；request 透传（标准层无怪癖） |
 | `quota.ts` | 余额查询（auth/key → limit-usage） |
 | `http.yaml` | 状态码 → 动作（401/402 轮换、429 冷却、5xx 重试） |
