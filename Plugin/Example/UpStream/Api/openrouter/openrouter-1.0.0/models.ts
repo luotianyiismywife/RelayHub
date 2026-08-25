@@ -4,8 +4,16 @@
 // ════════════════════════════════════════════════════════════════
 // ★ 特殊性：OpenRouter 就是模型元数据源本身（插件即元数据源）
 //   其他平台：list_models 只填部分字段，缺失靠 Kernel-models 从 OpenRouter 补全
-//   OpenRouter：/api/v1/models 返回全量字段 → 本钩子直接填满 ModelInfo
+//   OpenRouter：/api/v1/models 返回全量字段 → 本钩子直接填满内核消费字段
 //   详见 analysis/06-commercial-reference/openrouter/openrouter.md §1.2 字段映射表
+//
+// ★ 只填内核消费字段（2026-08-25 精简，契约 §0.7 字段分组）：
+//   models.yaml = 内核路由/计费用的数据，不是 OpenRouter API 的全量转储
+//   ✅ 填：id / raw_id / capabilities / limits / supportedParameters /
+//          defaultParameters / reasoning / pricing / knowledgeCutoff / expirationDate
+//   ❌ 不填（展示层/无关，白占体积）：displayName / description / created /
+//          aliases / benchmarks / supportedVoices / perRequestLimits / isModerated /
+//          tokenizer / instructType / modality
 //
 // ★ 模型 ID 归一化（2026-08-25，模型映射 §2.5.2）：
 //   OpenRouter ID = provider/model 格式 + 变体后缀 :free / :batch
@@ -35,12 +43,10 @@ export async function list_models(ctx: Ctx): Promise<ModelInfo[]> {
       id: normalize_id(m.id),
       raw_id: m.id,                              // ★ 原始 provider/model（转发时原样带上）
 
-      // —— 基础信息 ——
-      displayName: m.name,                       // 如 "Anthropic: Claude Opus 5"
-      description: m.description,
-      created: m.created,
+      // —— 基础信息（只留内核消费：K8 免费模型下线 / 生命周期）——
       knowledgeCutoff: m.knowledge_cutoff,
       expirationDate: m.expiration_date,         // 免费模型限时下线（K8）
+      // displayName/description/created 是展示层字段，models.yaml 不存（见头部说明）
 
       // —— 能力（OpenRouter 平台级转换 → 三格式全 true）——
       capabilities: {
@@ -79,18 +85,11 @@ export async function list_models(ctx: Ctx): Promise<ModelInfo[]> {
         defaultEffort: m.reasoning.default_effort,
       } : undefined,
 
-      // —— pricing（★ 字符串 → 数字转换，见 parse_pricing）——
+      // —— pricing（★ 字符串 → 数字转换，见 parse_pricing；Kernel-billing 计费用）——
       pricing: parse_pricing(m.pricing),
-
-      // —— 其他元数据（契约可存字段，按需透传）——
-      aliases: m.aliases,                        // alias_target
-      benchmarks: m.benchmarks,                  // design_arena / artificial_analysis
-      supportedVoices: m.supported_voices,
-      perRequestLimits: m.per_request_limits,
-      isModerated: m.top_provider?.is_moderated,
-      tokenizer: m.architecture?.tokenizer,      // "Claude"/"GPT"/"Gemini"
-      instructType: m.architecture?.instruct_type,
-      modality: m.architecture?.modality,        // "text+image+file->text"
+      // 其余契约字段（aliases/benchmarks/supportedVoices/perRequestLimits/
+      // isModerated/tokenizer/instructType/modality）为"可存但不对外展示"，
+      // 展示层用不上、白占体积 → 不写进 models.yaml（见头部说明）
     }
   })
 }

@@ -64,8 +64,8 @@ openrouter_title: "RelayHub"                       # 应用名
 | 文件 | 职责 |
 |---|---|
 | `upstream.yaml` | 平台说明书（端点/认证/头/错误判定） |
-| `models.ts` | ★ list_models：全量字段映射 + ID 归一化（核心） |
+| `models.ts` | ★ list_models：内核消费字段映射（id/raw_id/capabilities/limits/…/pricing）+ ID 归一化（核心） |
 | `convert.ts` | convert_response usage 归一化；request 透传（标准层无怪癖） |
 | `quota.ts` | 余额查询（auth/key → limit-usage） |
 | `http.yaml` | 状态码 → 动作（401/402 轮换、429 冷却、5xx 重试） |
-| `models.yaml` | 模型列表快照（models.ts 生成，内核优先读） |
+| `models.yaml` | 模型列表快照（models.ts 生成，内核优先读；只含内核消费字段） |
