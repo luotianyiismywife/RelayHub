@@ -1,6 +1,6 @@
 # one-api 上游插件
 
-> kind：`Upstream-api-balance`（API Key + 余额计费）
+> kind：`Upstream-text-api-balance`（文本 + API Key + 余额计费）
 > 平台：one-api / new-api 系中转站
 > **定位：展示"中转站作为上游"怎么写插件**（中转站套中转站场景）
 

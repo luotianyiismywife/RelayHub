@@ -11,7 +11,7 @@ tokenrhythm 是"**协议有怪癖的平台**"的典型代表，展示了：
 
 | 关注点 | 做法 |
 |---|---|
-| **kind 选择** | `Upstream-api-balance`（key + 余额计费） |
+| **kind 选择** | `Upstream-text-api-balance`（文本 + key + 余额计费） |
 | **协议分工** | OpenAI 用 yaml（标准）；Anthropic/Responses 用 ts（有怪癖） |
 | **静态规则** | `anthropic-version` 强制头 + `max_tokens` 必传 → yaml `special` |
 | **条件修正** | thinking+temperature 400、扁平工具格式 → ts `convert_request` |
@@ -23,8 +23,8 @@ tokenrhythm 是"**协议有怪癖的平台**"的典型代表，展示了：
 ```
 plugin/Template/UpStream/            # 模板（复制改名用）
 plugin/Example/UpStream/Api/
-├── tokenrhythm/tokenrhythm-1.0.0/   # 本示例（Upstream-api-balance）
-├── opencode-go/opencode-go-1.0.0/   # 套餐限额示例（Upstream-api-quota）
+├── tokenrhythm/tokenrhythm-1.0.0/   # 本示例（Upstream-text-api-balance）
+├── opencode-go/opencode-go-1.0.0/   # 套餐限额示例（Upstream-text-api-quota）
 └── one-api/one-api-1.0.0/           # 中转站作为上游示例
 ```
 
@@ -33,9 +33,9 @@ plugin/Example/UpStream/Api/
 
 ## 3. Sub 类模板状态
 
-> ⚠️ **Upstream-sub（账号池类）暂无完整示例** —— plugin 目录目前只有 Api 类（Balance/Quota）。
+> ⚠️ **Upstream-<模态>-sub（账号池类）暂无完整示例** —— plugin 目录目前只有 text+Api 类（Balance/Quota）。
 > Sub 类（sub2api / CPA 等账号池平台）的插件待写，模板见
-> [插件模板分类](../插件模板分类.md) §3（Upstream-sub yaml 骨架）。
+> [插件模板分类](../插件模板分类.md) §3（Upstream-<模态>-sub yaml 骨架）。
 
 ## 4. 相关文档
 

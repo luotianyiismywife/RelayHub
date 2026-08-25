@@ -1,9 +1,9 @@
 # one-api 上游插件定义
-# kind: Upstream-api-balance（API Key + 余额计费）
+# kind: Upstream-text-api-balance（文本 + API Key + 余额计费）
 # 平台：one-api / new-api 系中转站（"中转站作为上游"的示例）
 # 特点：OpenAI 兼容标准，唯一的定制点是余额查询接口
 apiVersion: relayhub.io/v1
-kind: Upstream-api-balance
+kind: Upstream-text-api-balance
 metadata:
   name: one-api
   version: 1.0.0

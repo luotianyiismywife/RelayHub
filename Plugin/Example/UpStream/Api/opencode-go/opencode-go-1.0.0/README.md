@@ -1,6 +1,6 @@
 # OpenCode Go 上游插件
 
-> kind：`Upstream-api-quota`（API Key + 套餐限额计费）
+> kind：`Upstream-text-api-quota`（文本 + API Key + 套餐限额计费）
 > 平台：OpenCode Go（https://opencode.ai/zen/go/v1/）
 > 来源：https://github.com/OnesoftQwQ/opencode-go-copilot （goUsage.ts 实测）
 

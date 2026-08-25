@@ -1,10 +1,10 @@
 # OpenCode Zen 上游插件定义
-# kind: Upstream-api-free（API Key 匿名 + 免费模型，无余额/套餐计费）
+# kind: Upstream-text-api-free（文本 + API Key 匿名 + 免费模型，无余额/套餐计费）
 # 平台：OpenCode Zen https://opencode.ai/zen/v1/
 # 规则来源：opencode 官方源码（packages/opencode/src/session/llm/request.ts）+
 #          zen 后端（packages/console/app/src/routes/zen/util/handler.ts）+ 抓包实测
 apiVersion: relayhub.io/v1
-kind: Upstream-api-free
+kind: Upstream-text-api-free
 metadata:
   name: opencode-zen
   version: 1.0.0

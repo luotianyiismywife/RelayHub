@@ -98,9 +98,9 @@ export async function list_models(ctx: Ctx): Promise<ModelInfo[]> {
     //   cacheWrite1h: m.pricing.input_cache_write_1h,
     //   reasoning: m.pricing.internal_reasoning,
     //   image: m.pricing.image,
-    //   imageOutput: m.pricing.image_output,
+    //   imageOutput: m.image_output,     // 未来 image/audio/video/mix 模态 kind 再补
     //   audio: m.pricing.audio,
-    //   audioOutput: m.pricing.audio_output,
+    //   audioOutput: m.audio_output,     // 未来 image/audio/video/mix 模态 kind 再补
     //   webSearch: m.pricing.web_search,
     //   tier: m.pricing.overrides,   // 阶梯定价（J3）
     // } : undefined,

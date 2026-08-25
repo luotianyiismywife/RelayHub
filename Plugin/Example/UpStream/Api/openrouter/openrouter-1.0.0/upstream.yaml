@@ -1,6 +1,6 @@
 # OpenRouter 上游插件定义
 # ════════════════════════════════════════════════════════════════
-# kind: Upstream-api-balance（充值制：credit 预存，按用量扣费）
+# kind: Upstream-text-api-balance（文本 + 充值制：credit 预存，按用量扣费）
 # 平台：OpenRouter https://openrouter.ai/api
 # 规则来源：analysis/06-commercial-reference/openrouter/openrouter.md（字段全量统计）
 # ════════════════════════════════════════════════════════════════
@@ -12,7 +12,7 @@
 #   provider/model 格式 + :free/:batch 后缀 → 全部转 -（详见 models.ts）
 #   deepseek/deepseek-v4-flash:free → id deepseek-deepseek-v4-flash-free / raw_id 保留原始
 apiVersion: relayhub.io/v1
-kind: Upstream-api-balance
+kind: Upstream-text-api-balance
 metadata:
   name: openrouter
   version: 1.0.0

@@ -1,9 +1,9 @@
 # tokenrhythm 上游插件定义
-# kind: Upstream-api-balance（API Key + 余额计费）
+# kind: Upstream-text-api-balance（文本 + API Key + 余额计费）
 # 平台：基云律动 https://tokenrhythm.studio/v1
 # 规则来源：tokenrhythm-copilot 实测记录 + 2026-08-24 /v1/models 实测
 apiVersion: relayhub.io/v1
-kind: Upstream-api-balance
+kind: Upstream-text-api-balance
 metadata:
   name: tokenrhythm
   version: 1.0.0

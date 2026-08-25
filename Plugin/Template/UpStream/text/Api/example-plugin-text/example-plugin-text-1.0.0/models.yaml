@@ -58,9 +58,9 @@
 #     .cacheWrite1h number? 可选  缓存写单价（1h TTL，Claude 特有）
 #     .reasoning   number? 可选  推理 token 单价
 #     .image       number? 可选  图片输入单价
-#     .imageOutput number? 可选  图片输出（生图）单价
+#     .imageOutput number? 可选  图片输出（生图）—— 未来 image/audio/video/mix kind 再补
 #     .audio       number? 可选  音频输入单价
-#     .audioOutput number? 可选  音频输出单价
+#     .audioOutput number? 可选  音频输出 —— 未来 image/audio/video/mix kind 再补
 #     .webSearch   number? 可选  web search 按请求单价
 #     .tier        array?  可选  阶梯定价（J3）
 #       .minPromptTokens number  输入超过此阈值换费率

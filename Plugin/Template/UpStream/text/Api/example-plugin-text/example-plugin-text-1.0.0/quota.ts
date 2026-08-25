@@ -1,13 +1,13 @@
 // <插件名> 计费查询 hooks
 // ════════════════════════════════════════════════════════════════
 // 计费情况总览 —— 遇到哪种情况，写在哪里（照着对号入座）：
-//   balance 类（Upstream-api-balance）：
+//   balance 类（Upstream-text-api-balance）：
 //     · 只有总余额           → quota_balance 返回 { total }
 //     · 充值+限时赠送分开     → quota_balance 返回 total/permanent/limited
 //     · 峰时消耗翻倍         → yaml billing.peak（或钩子透传 peak）
 //     · 余额有有效期         → yaml rotation.balance_ttl
 //     · 查余额要 cookie      → yaml auth.query.cookie
-//   quota 类（Upstream-api-quota）：
+//   quota 类（Upstream-text-api-quota）：
 //     · 单窗口限额           → quota_usage 返回 1 个 window
 //     · 多窗口（5h/周/月）   → quota_usage 返回多个 window（kind 滚动/日历）
 //     · 日限额/3天限额       → window.period = "daily"/"3d"（kind 对应）
@@ -19,12 +19,12 @@
 //      那归 Kernel-billing（见 convert.ts extract_usage 只透传 usage 明细）
 // ════════════════════════════════════════════════════════════════
 // 同时提供两个钩子，按 kind 用哪个：
-//   kind: Upstream-api-balance → quota_balance（余额查询）
-//   kind: Upstream-api-quota   → quota_usage（套餐限额查询）
+//   kind: Upstream-text-api-balance → quota_balance（余额查询）
+//   kind: Upstream-text-api-quota   → quota_usage（套餐限额查询）
 // upstream.yaml 的 scripts 引用哪个就实现哪个（不用的可删）
 
 // ════════════════════════════════════════════════════════════════
-// Usage 结构契约（kind: Upstream-api-quota）—— 内核依赖以下字段：
+// Usage 结构契约（kind: Upstream-text-api-quota）—— 内核依赖以下字段：
 //   planExpiresAt?: string     套餐到期时间（整个套餐何时结束，可选）
 //   windows[].period           "5h" | "3d" | "daily" | "weekly" | "monthly"
 //   windows[].kind             ★ "rolling"（滚动）| "calendar"（日历固定边界）
@@ -44,7 +44,7 @@
 //   —— 静态声明进 yaml billing.peak；钩子把平台返回的峰谷数据透传即可
 // ════════════════════════════════════════════════════════════════
 
-// ── 余额查询（kind: Upstream-api-balance 必配）──────────────
+// ── 余额查询（kind: Upstream-text-api-balance 必配）──────────────
 // 只返回平台数据（金额数字），不含成本计算/货币转换（那是内核的职责）
 // 归一化结构：total 总余额；permanent 充值余额；limited 限时赠送余额（每笔）
 //   —— 平台不支持细分时只填 total 即可
@@ -60,7 +60,7 @@ export async function quota_balance(ctx: Ctx): Promise<Balance> {
   }
 }
 
-// ── 套餐限额查询（kind: Upstream-api-quota 必配）────────────
+// ── 套餐限额查询（kind: Upstream-text-api-quota 必配）────────────
 // 调用平台的用量端点，归一化成统一结构（套餐到期 + 多窗口 + 回退标志）
 // ⚠️ 每个窗口必须有 kind + resetsAt（滚动/日历、各自重置时间）—— 见文件头契约
 // ⚠️ 绝不静默返回 undefined：resolveResetsAt 三层兜底，全失败会 throw

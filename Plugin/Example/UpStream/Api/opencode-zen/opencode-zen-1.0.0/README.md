@@ -1,18 +1,18 @@
 # OpenCode Zen 上游插件
 
-> kind：`Upstream-api-free`（匿名 key + 免费模型，无余额/套餐计费）
+> kind：`Upstream-text-api-free`（文本 + 匿名 key + 免费模型，无余额/套餐计费）
 > 平台：OpenCode Zen（https://opencode.ai/zen/v1/）
 > 来源：opencode 官方源码（request.ts / zen handler.ts）+ 2026-08-24 抓包实测
 
-## ⚠️ 关于 kind：`Upstream-api-free`
+## ⚠️ 关于 kind：`Upstream-text-api-free`
 
-现有 kind 枚举只有 `Upstream-api-balance`（余额）和 `Upstream-api-quota`（套餐限额），
-两者都需要 `quota_balance` / `quota_usage` 钩子查额度。**zen 免费模型两者都不是**：
+kind 是 `Upstream-<模态>-<凭据>-<计费>`（模态 text/image/audio/video/mix；凭据 api/sub；计费 balance/quota/free）。
+balance/quota 都需要 `quota_balance` / `quota_usage` 钩子查额度。**zen 免费模型两者都不是**：
 
 - 无余额（匿名 `public`，不绑定账号）
 - 无套餐（配额在 **IP 维度**，由 zen 服务端 `createIpRateLimiter` 按 IP 限速）
 
-所以本示例声明为 `Upstream-api-free`（新增 kind，需同步更新 `插件模板分类.md` 的 kind 枚举）。
+所以本示例声明为 `Upstream-text-api-free`（文本 + 免费计费 kind）。
 语义：**免费模型、无限量、无 balance/quota 查询钩子、限速判定走内核（IP 维度）**。
 
 ## ★ 请求头示例及原因（本插件核心）
@@ -67,7 +67,7 @@
 | 模板文件 | 本插件 | 原因 |
 |---|---|---|
 | `convert.ts` | ❌ 省略 | 请求头声明化（yaml `headers`）取代了 convert_request；响应是标准 OpenAI 格式，格式匹配后直接转发，convert_response 透传即可 |
-| `quota.ts` | ❌ 省略 | `Upstream-api-free` 无余额/套餐查询钩子 |
+| `quota.ts` | ❌ 省略 | `Upstream-text-api-free` 无余额/套餐查询钩子 |
 
 ## config.yaml 配置示例
 
@@ -92,4 +92,4 @@ upstreams:
 ## 参考
 
 - 设计文档：`docs/RealyHubSad/02-插件体系/上游插件/上游定义声明化设计.md`（§5.6 请求头声明化 / §5.7 可配置面）
-- 姊妹插件：`Example/UpStream/Api/opencode-go/`（Go 套餐 = `Upstream-api-quota`，三窗口限额）
+- 姊妹插件：`Example/UpStream/Api/opencode-go/`（Go 套餐 = `Upstream-text-api-quota`，三窗口限额）

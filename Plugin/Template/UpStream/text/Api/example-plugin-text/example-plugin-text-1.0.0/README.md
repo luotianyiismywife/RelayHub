@@ -2,8 +2,8 @@
 
 > 本目录是**模板**，复制后按注释填写即可。
 > 支持两种计费 kind（二选一，结构相同）：
-> - `Upstream-api-balance`：API Key + 余额计费 → 用 `quota_balance` 钩子
-> - `Upstream-api-quota`：API Key + 套餐限额 → 用 `quota_usage` 钩子 + `billing` 段
+> - `Upstream-text-api-balance`：API Key + 余额计费 → 用 `quota_balance` 钩子
+> - `Upstream-text-api-quota`：API Key + 套餐限额 → 用 `quota_usage` 钩子 + `billing` 段
 > 参考示例：`Example/UpStream/Api/tokenrhythm/`（balance）、`Example/UpStream/Api/opencode-go/`（quota）
 
 ## ⚠️ 职责边界（写插件前必读）—— 什么该自己写，什么留给内核
@@ -38,7 +38,7 @@
 
 ## 使用方法
 
-1. 复制本目录为 `plugin/UpStream/Api/<插件名>/<插件名>-1.0.0/`
+1. 复制本目录为 `plugin/UpStream/text/Api/<插件名>/<插件名>-1.0.0/`
 2. 按 `upstream.yaml` 中的注释填写平台信息（含 kind 选择）
 3. 按各 `.ts` 文件中的注释实现平台差异逻辑
 4. 删除 `# 模板说明` 部分

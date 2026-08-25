@@ -1,6 +1,6 @@
 # tokenrhythm 上游插件
 
-> kind：`Upstream-api-balance`（API Key + 余额计费）
+> kind：`Upstream-text-api-balance`（文本 + API Key + 余额计费）
 > 平台：基云律动（https://tokenrhythm.studio/v1）
 > 来源：https://github.com/luotianyiismywife/tokenrhythm-copilot （实测排障记录）
 

@@ -60,9 +60,7 @@ export async function list_models(ctx: Ctx): Promise<ModelInfo[]> {
         audio: input.includes("audio"),
         video: input.includes("video"),
         file: input.includes("file"),
-        // —— 输出模态（architecture.output_modalities）——
-        imageOutput: output.includes("image"),   // 生图模型
-        audioOutput: output.includes("audio"),
+        // —— 输出模态：暂不映射（生图/音视频未来做 image/audio/video/mix kind 再补）——
         // —— 功能能力 ——
         thinking: !!m.reasoning,                 // reasoning 字段存在
         tools: params.includes("tools"),         // supported_parameters 含 tools
