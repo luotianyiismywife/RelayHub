@@ -7,13 +7,10 @@
 //   OpenRouter：/api/v1/models 返回全量字段 → 本钩子直接填满内核消费字段
 //   详见 analysis/06-commercial-reference/openrouter/openrouter.md §1.2 字段映射表
 //
-// ★ 只填内核消费字段（2026-08-25 精简，契约 §0.7 字段分组）：
+// ★ 只填内核消费字段（2026-08-25 精简，持久化分组表见模型映射 §3.2.1）：
 //   models.yaml = 内核路由/计费用的数据，不是 OpenRouter API 的全量转储
-//   ✅ 填：id / raw_id / capabilities / limits / supportedParameters /
-//          defaultParameters / reasoning / pricing / knowledgeCutoff / expirationDate
-//   ❌ 不填（展示层/无关，白占体积）：displayName / description / created /
-//          aliases / benchmarks / supportedVoices / perRequestLimits / isModerated /
-//          tokenizer / instructType / modality
+//   必填 id/raw_id/capabilities + 按需 limits/supportedParameters/defaultParameters/
+//   reasoning/pricing/knowledgeCutoff/expirationDate；展示层字段（displayName 等）不填
 //
 // ★ 模型 ID 归一化（2026-08-25，模型映射 §2.5.2）：
 //   OpenRouter ID = provider/model 格式 + 变体后缀 :free / :batch

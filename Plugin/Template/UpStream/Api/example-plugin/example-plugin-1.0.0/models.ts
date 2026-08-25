@@ -30,14 +30,9 @@
 //   详见 analysis/06-commercial-reference/openrouter/openrouter.md §1.2
 //
 // ⚠️ 契约全量 ≠ 每个插件都填（2026-08-25 教训，openrouter 示例插件踩过）：
-//   ModelInfo 契约（§0.7）是全行业字段全集，models.yaml 只序列化内核消费字段：
-//   ✅ 必填：id / raw_id / capabilities
-//   ✅ 按需：limits / supportedParameters / defaultParameters / reasoning /
-//            pricing / knowledgeCutoff / expirationDate
-//   ❌ 不填（展示层/无关，白占体积）：displayName / description / created /
-//      aliases / benchmarks / supportedVoices / perRequestLimits / isModerated /
-//      tokenizer / instructType / modality —— 契约保留定义，但默认不进 models.yaml
-//   参考实现：openrouter 插件 models.ts（只填内核消费字段）
+//   完整 ModelInfo 契约 + 持久化分组见文档「模型映射与模型列表设计 §3.2.1」（唯一权威），此处不重复。
+//   必填：id / raw_id / capabilities；展示层字段（displayName/description/benchmarks 等）不填。
+//   参考实现：openrouter 插件 models.ts
 
 // ── 模型列表 ───────────────────────────────────────────────
 export async function list_models(ctx: Ctx): Promise<ModelInfo[]> {
