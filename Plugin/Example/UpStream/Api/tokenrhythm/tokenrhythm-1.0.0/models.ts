@@ -5,10 +5,10 @@
 //   supports_anthropic / supports_responses / supports_vision / supports_tools
 //   pricing（含 effective_pricing 折扣）/ responses_capabilities（responses 详细能力）
 // ════════════════════════════════════════════════════════════════
-// ★ 职责（2026-08-24）：
+// ★ 职责（2026-08-24，2026-08-25 补 /→- 与 raw_id）：
 //   1. 拉取上游 /v1/models
-//   2. _→- 归一化（模型名所有 _ 转 -）★ 在这里做，内核不做
-//   3. 返回 ModelInfo[]（只填上游能返回的字段）
+//   2. 归一化（模型名所有 _、/ 转 -）★ 在这里做，内核不做
+//   3. 返回 ModelInfo[]（只填上游能返回的字段；id=归一化名，raw_id=上游原始 ID）
 //   4. 内核把返回结果写入插件包内 models.yaml，后续读 models.yaml（不每次调本钩子）
 //
 // ★ models.yaml 是本钩子的产物（缓存/声明文件），内核启动时优先读它
@@ -35,8 +35,12 @@ export async function list_models(ctx: Ctx): Promise<ModelInfo[]> {
   const data = await ctx.http.get("/v1/models")
 
   return (data.data ?? []).map((m) => ({
-    // ★ 归一化：模型名所有 _ 转 -（内核不做，必须在这里做）
-    id: m.id.replace(/_/g, "-"),
+    // ★ 归一化：模型名所有 _、/ 转 -（内核不做，必须在这里做）
+    //   _→-：对外名 _ 是上游分隔符（独占）；/→-：模型名不得含 /（如 OpenRouter provider/model）
+    //   ★ 归一化名只是键：上游原始 id 存 raw_id，转发请求/内部匹配都用 raw_id
+    id: m.id.replace(/_/g, "-").replace(/\//g, "-"),
+    // ★ 上游原始 ID（不归一化）：转发请求 / model_map 匹配 / L7.3 匹配都用它
+    raw_id: m.id,
 
     // —— 协议维度（必填，平台扩展字段最权威）——
     capabilities: {

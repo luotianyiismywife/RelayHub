@@ -1,0 +1,102 @@
+# OpenRouter 上游插件定义
+# ════════════════════════════════════════════════════════════════
+# kind: Upstream-api-balance（充值制：credit 预存，按用量扣费）
+# 平台：OpenRouter https://openrouter.ai/api
+# 规则来源：analysis/06-commercial-reference/openrouter/openrouter.md（字段全量统计）
+# ════════════════════════════════════════════════════════════════
+# ★ 本插件的特殊性（2026-08-25）：
+#   OpenRouter 就是模型元数据源本身（422 模型全量字段）
+#   → list_models 钩子直接填满 ModelInfo（插件即元数据源），不需要 Kernel-models 补全
+#   → 其他插件靠 Kernel-models "忽略 / 前部分"匹配 OpenRouter 补字段；本插件 raw_id 就是完整 ID
+# ★ ID 归一化（_→-、/→-、:→-）：
+#   provider/model 格式 + :free/:batch 后缀 → 全部转 -（详见 models.ts）
+#   deepseek/deepseek-v4-flash:free → id deepseek-deepseek-v4-flash-free / raw_id 保留原始
+apiVersion: relayhub.io/v1
+kind: Upstream-api-balance
+metadata:
+  name: openrouter
+  version: 1.0.0
+  labels:
+    vendor: openrouter
+
+# 依赖声明（Cargo 规则，见插件开发规范 §1.5）
+depends:
+  kernel: "^0.1"
+
+# ── 入口地址（可选，默认取插件内置值）───────────────────────
+# 官方 https://openrouter.ai/api；自建反代/镜像时只改配置不动插件
+base_url: "{{ref:openrouter_base_url}}"
+
+# ── 端点（key = 协议名，内核按协议分发）────────────────────
+# OpenRouter 平台级转换：openai/anthropic/responses 三格式都收（gemini 不支持）
+apis:
+  openai:                       # OpenAI 协议（一切模型可用）
+    path: /v1/chat/completions
+    method: POST
+  anthropic:                    # Anthropic 协议（messages 格式，需 anthropic-version 头）
+    path: /v1/messages
+    method: POST
+  responses:                    # OpenAI Responses 协议
+    path: /v1/responses
+    method: POST
+  models:                       # 模型列表（★ 字段全量，本插件核心价值）
+    path: /v1/models
+    method: GET
+  embeddings:                   # 嵌入（OpenAI 系）
+    path: /v1/embeddings
+    method: POST
+
+# ── 认证：Bearer API Key（sk-or-...）───────────────────────
+auth:
+  type: bearer
+  key_field: Authorization
+  credentials: ref:openrouter-prod     # 转发用 key（docker secret 引用）
+  # OpenRouter 余额也用同一 key 查（GET /v1/auth/key），无独立查询凭据
+  # query 段省略 → 余额查询复用转发 key
+
+# ── 请求头注入（可选，OpenRouter 约定：标注来源可提升 rate limit）──
+headers:
+  HTTP-Referer: "{{ref:openrouter_referer}}"   # 你的站点 URL（OpenRouter 仪表盘统计来源）
+  X-Title: "{{ref:openrouter_title}}"          # 应用名（默认 "RelayHub"）
+
+# ── 请求体默认参数（可选）─────────────────────────────────
+# Anthropic 协议必传 max_tokens，用 body.defaults 补默认值（客户端没传时）
+body:
+  defaults:
+    max_tokens: 4096
+
+# ── 静态规则（强制头 / 必传字段）────────────────────────────
+special:
+  headers:
+    anthropic:                          # Anthropic 协议必带头
+      anthropic-version: "2023-06-01"
+  required_fields:
+    anthropic:
+      - max_tokens                      # Anthropic 必传（缺失补默认值）
+
+# ── 协议策略（2026-08-24 简化：匹配，不降级）────────────────
+# OpenRouter 平台级支持三种格式 → 所有模型 openai/anthropic/responses 皆可
+# 客户端格式与模型能力不匹配时直接 400 报错（不做格式转换）
+protocols:
+  preferred: openai
+
+# ── key 轮换错误判定（OpenRouter 错误，2026-08-25 依文档）────
+# 只声明判定，轮换机制/模式/冷却归内核
+# http.yaml = 完整状态码 → 动作映射（rotate/cooldown/retry/passthrough）
+rotation:
+  http_rules: ./http.yaml              # ✅ 状态码 → 动作映射（401/402 轮换、429 冷却、5xx 重试）
+  error_patterns:                       # OpenRouter 错误体消息文本
+    - "Insufficient Credits"            # 402 余额不足（充值制核心错误）
+    - "Not enough credits"
+    - "Invalid API key"                 # 401 无效 key
+    - "rate limited"                    # 429 限速
+    - "Model Not Found"                 # 404 模型不存在
+    - "No endpoints found"              # 模型无可用上游端点
+  balance_ttl: 5m                       # 余额有效期（auth/key 查询有成本）
+
+# ── 脚本清单：钩子 → 文件/函数 显式映射（可拆多文件）──────────
+scripts:
+  convert_request:  ./convert.ts       # 同格式内参数修正（OpenRouter 标准层，怪癖最少）
+  convert_response: ./convert.ts       # usage 归一化（extract_usage）
+  list_models:      ./models.ts        # 必配：模型列表（★ 字段全量映射，插件即元数据源）
+  quota_balance:    ./quota.ts         # 余额查询（GET /v1/auth/key，limit-usage）

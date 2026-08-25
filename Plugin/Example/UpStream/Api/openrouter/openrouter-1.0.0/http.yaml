@@ -1,0 +1,56 @@
+# OpenRouter 状态码 → 动作映射（依官方文档，2026-08-25）
+# OpenRouter 错误体：{ "error": { "code": <number>, "message": "...", "metadata": {...} } }
+# 402 = 余额不足（Insufficient Credits，充值制核心错误）→ rotate（换 key 或提示充值）
+version: 1
+default:
+  action: passthrough
+  rotatable: false
+  retryable: false
+codes:
+  "400":
+    action: passthrough
+    reason: bad_request            # 参数错误 / 请求格式问题
+  "401":
+    action: rotate
+    reason: invalid_credential     # Invalid API key
+    rotatable: true
+    retryable: true
+  "402":
+    action: rotate
+    reason: insufficient_balance   # Insufficient Credits（余额不足）
+    rotatable: true
+    retryable: true
+  "403":
+    action: passthrough
+    reason: forbidden              # 地区封锁 / moderation / 免费模型需 key
+  "404":
+    action: passthrough
+    reason: not_found              # Model Not Found / 端点不存在
+  "408":
+    action: retry
+    reason: request_timeout
+    retryable: true
+  "422":
+    action: passthrough
+    reason: unprocessable_content
+  "429":
+    action: cooldown
+    reason: rate_limited           # 限速（含免费模型更严的限速）
+    rotatable: true
+    retryable: true
+  "500":
+    action: retry
+    reason: internal_server_error
+    retryable: true
+  "502":
+    action: retry
+    reason: bad_gateway            # 上游 provider 错误（OpenRouter 常见）
+    retryable: true
+  "503":
+    action: retry
+    reason: service_unavailable
+    retryable: true
+  "504":
+    action: retry
+    reason: gateway_timeout
+    retryable: true

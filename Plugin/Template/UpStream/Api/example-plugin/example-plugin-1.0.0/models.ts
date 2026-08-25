@@ -9,10 +9,10 @@
 // list_models（默认必配：不同平台模型列表大概率不一样）
 // 参考 OpenAI 标准格式：GET /v1/models → { object: "list", data: [{ id, object, created, owned_by }] }
 //
-// ★ 职责（2026-08-24 更新）：
+// ★ 职责（2026-08-24 更新，2026-08-25 补 /→- 与 raw_id）：
 //   1. 拉取上游 /v1/models
-//   2. _→- 归一化（模型名所有 _ 转 -）★ 在这里做，内核不做
-//   3. 返回 ModelInfo[]（含 capabilities + limits + supportedParameters + reasoning 等）
+//   2. 归一化（模型名所有 _、/ 转 -）★ 在这里做，内核不做
+//   3. 返回 ModelInfo[]（含 capabilities + limits + supportedParameters + reasoning 等；id=归一化名，raw_id=上游原始 ID）
 //   4. 内核会把返回结果写入插件包内 models.yaml，后续读 models.yaml（不每次调本钩子）
 //
 // ★ models.yaml 是本钩子的产物（缓存/声明文件），内核启动时优先读它：
@@ -37,8 +37,12 @@ export async function list_models(ctx: Ctx): Promise<ModelInfo[]> {
 
   // 若平台有扩展字段（supports_anthropic 等），在此归一化到 capabilities
   return (data.data ?? []).map((m) => ({
-    // ★ 归一化：模型名所有 _ 转 -（内核不做，必须在这里做）
-    id: m.id.replace(/_/g, "-"),
+    // ★ 归一化：模型名所有 _、/ 转 -（内核不做，必须在这里做）
+    //   _→-：对外名 _ 是上游分隔符（独占）；/→-：模型名不得含 /（如 OpenRouter provider/model）
+    //   ★ 归一化名只是键：上游原始 id 存 raw_id，转发请求/内部匹配都用 raw_id
+    id: m.id.replace(/_/g, "-").replace(/\//g, "-"),
+    // ★ 上游原始 ID（不归一化）：转发请求 / model_map 匹配 / 与外部数据源匹配都用它
+    raw_id: m.id,
 
     // —— 协议维度（必填，插件最权威）——
     capabilities: {
